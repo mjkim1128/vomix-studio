@@ -1,0 +1,27 @@
+name: Pro 키 신청 (후원 / 피드백)
+description: 후원했거나 유용한 피드백을 줬을 때 Pro 키를 신청해요
+title: "[Pro 키] "
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 신청 종류
+      options:
+        - 후원했어요 (Pro 약 3개월)
+        - 유용한 피드백을 줬어요 (Pro 약 1개월)
+    validations:
+      required: true
+  - type: input
+    id: github
+    attributes:
+      label: GitHub 사용자 이름
+      description: 지금 이 신청을 하는 계정의 이름이에요. 키에 이 이름이 들어가요.
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: 후원 스크린샷 (후원 신청일 때)
+      description: 후원 서비스에서 후원한 내역이 보이는 화면을 끌어다 놓아 주세요. 이 글은 공개예요. 이름 외의 카드·계좌·메일 주소 등은 가리고 올려 주세요. 피드백 신청이면 해당 이슈 링크를 적어 주세요.
+    validations:
+      required: true

@@ -1,0 +1,51 @@
+Vomix Studio - third-party components
+
+This program includes or uses the following open-source software. Each component stays under its own licence.
+(Draft list for the installer: check the exact licence texts and versions before you sell or distribute the program.)
+
+- Python (PSF License)
+- PyTorch (BSD-style)
+- Demucs and its pretrained models htdemucs / htdemucs_6s (MIT)
+- Basic Pitch (Apache License 2.0) and ONNX Runtime (MIT)
+- librosa (ISC), NumPy, SciPy (BSD)
+- pyworld / WORLD vocoder (Modified BSD)
+- FastAPI, Starlette, Uvicorn (BSD / MIT)
+- Preact and htm (MIT)
+- SoundFile / libsndfile (BSD / LGPL - dynamically linked)
+
+- Music-Source-Separation-Training (MSST) code, BS-RoFormer implementation (MIT) - Copyright (c) 2024 Roman Solovyev (ZFTurbo)
+
+53-stem separation model ("MVSep Mega 53 stems", BS-RoFormer, models/mega53)
+-----------------------------------------------------------------------------
+Used by the "precise" analysis (Pro plan). The model weights were released by ZFTurbo under the MIT License
+(statement by the author: https://github.com/ZFTurbo/Music-Source-Separation-Training/issues/245 , 2026-09-25).
+The author also states that he does not hold the copyright to all audio data used to train the model, and that the software and
+the weights are provided "as is", without warranty and without any legal guarantee or indemnification regarding the training data.
+Vomix Studio does not train or modify the model; it only runs it on audio files that the user supplies, on the user's own computer.
+Vomix Studio gives no warranty for the model either. Use only songs you have the right to use.
+
+The MIT License text that applies to the MSST code and to the model weights:
+
+MIT License
+
+Copyright (c) 2024 Roman Solovyev (ZFTurbo)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Other components keep their own licences (see the list above).

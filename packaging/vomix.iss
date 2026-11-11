@@ -30,6 +30,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DiskSpanning=no
 ShowLanguageDialog=auto
 CloseApplications=no
+; the launcher holds this mutex while it runs: Setup and the uninstaller ask to close the program first
+AppMutex=VomixStudioRunning
 
 [Languages]
 Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"

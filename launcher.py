@@ -82,6 +82,19 @@ def _focus_window(title="Vomix Studio"):
         return False
 
 
+_MUTEX = []
+
+
+def _hold_mutex():
+    """A named mutex that lives as long as this process: the installer (AppMutex) uses it to notice that the program is running
+    and asks to close it first, so an update never leaves an old window open next to the new one."""
+    try:
+        import ctypes
+        _MUTEX.append(ctypes.windll.kernel32.CreateMutexW(None, False, "VomixStudioRunning"))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _port_free(port):
     with socket.socket() as s:
         return s.connect_ex(("127.0.0.1", port)) != 0
@@ -116,6 +129,7 @@ def main():
             return
         _open_window(URL)
         return
+    _hold_mutex()
     if not _port_free(PORT):
         raise SystemExit("포트 %d 를 다른 프로그램이 쓰고 있어요" % PORT)
     import uvicorn

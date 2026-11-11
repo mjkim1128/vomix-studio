@@ -213,7 +213,7 @@ const HELP = [
   { id: 'sample', title: '샘플', body: [
     ['p', '"소리 파일 추가"로 mp3, wav 같은 파일을 넣어요. 파일 이름이 그대로 샘플 이름이에요.'],
     ['h', '자르기'],
-    ['ul', ['"자르기"를 누르면 소리 모양이 나와요. 소리 덩어리를 눌러 고르거나 끌어서 직접 구간을 정해요.', '한 번에 소리 하나(한 번 울린 소리)만 고르면 음높이가 가장 잘 맞아요.', '"이 구간 사용"은 그 샘플의 쓸 구간을 정해요.', '"잘라서 노드로 만들기"는 잘라낸 소리를 바로 노드 모음에 넣어요.']],
+    ['ul', ['"자르기"를 누르면 소리 모양이 나와요. 소리 덩어리를 눌러 고르거나 끌어서 직접 구간을 정해요.', '한 번에 소리 하나(한 번 울린 소리)만 고르면 음높이가 가장 잘 맞아요.', '"이 구간 사용"은 그 샘플의 쓸 구간을 정하고, 정한 구간은 파형에서 주황색으로 보여요. "사용 구간 해제"를 누르면 처음 상태로 돌아가요.', '"잘라서 노드로 만들기"는 잘라낸 소리를 바로 노드 모음에 넣어요.']],
     ['p', '샘플의 "기준음"(처음 소리의 높이)은 자동으로 찾아요. 이 음을 기준으로 다른 음높이가 만들어져요.']] },
   { id: 'ref', title: '참조곡 힌트', body: [
     ['p', '참조곡은 내가 만들 곡의 모델이에요. 곡을 악기별 소리로 나누고, 각 소리에서 음을 뽑아서 보여 줘요. 이 음들은 힌트일 뿐이고, 어떻게 쓸지는 직접 정해요.'],
@@ -509,7 +509,7 @@ function PlanModal({ plan, onClose, onChange, notice }) {
   </div>`;
 }
 
-function SampleModal({ sample, onClose, onApply, onMakeNode }) {
+function SampleModal({ sample, onClose, onApply, onMakeNode, onRelease }) {
   const cv = useRef(null);
   const box = useRef(null);
   const [sel, setSel] = useState(sample.sel ? { start: sample.sel.start, end: sample.sel.end } : null);
@@ -522,15 +522,23 @@ function SampleModal({ sample, onClose, onApply, onMakeNode }) {
     c.width = 1400; c.height = 260;
     const g = c.getContext('2d');
     g.clearRect(0, 0, 1400, 260);
-    g.fillStyle = '#7d8bff';
     const n = sample.peaks.length;
     const mx = Math.max(...sample.peaks, 0.001);
+    const us = sample.used && sample.sel ? sample.sel : null;   // the range in use gets its own colour
     sample.peaks.forEach((p, i) => {
-      const h = (p / mx) * 240;
+      const h = (p / mx) * 240, t = ((i + 0.5) / n) * dur;
+      g.fillStyle = us && t >= us.start && t <= us.end ? '#ffa94d' : '#7d8bff';
       g.fillRect((i / n) * 1400, 130 - h / 2, Math.max(2, 1400 / n - 1), Math.max(2, h));
     });
-  }, [sample.id]);
+  }, [sample.id, sample.used, sample.sel && sample.sel.start, sample.sel && sample.sel.end]);
   useEffect(() => () => { Prev.pause(); }, []);
+  // back to the sound piece that was chosen when the sample was added (the first usable one)
+  const release = () => {
+    const sg = sample.segments.find((q) => q.root != null && q.end - q.start >= 0.12 && q.end - q.start <= 1.5) || sample.segments[0];
+    if (!sg) return;
+    setSel({ start: sg.start, end: sg.end });
+    onRelease(sg);
+  };
   const tAt = (e) => {
     const r = box.current.getBoundingClientRect();
     return clamp(((e.clientX - r.left) / r.width) * dur, 0, dur);
@@ -587,9 +595,11 @@ function SampleModal({ sample, onClose, onApply, onMakeNode }) {
       </div>
       <div class="hint">"잘라서 노드로 만들기"는 소리의 음높이가 바뀌는 곳마다 자동으로 나눠 음을 하나씩 만들어요. 직접 나누려면 구간 안을 Shift+클릭해 나눔 표시를 넣으세요 (다시 Shift+클릭하면 지워져요).</div>
       <div class="hint">${sel ? `선택: ${sel.start.toFixed(2)} ~ ${sel.end.toFixed(2)}초 (${(sel.end - sel.start).toFixed(2)}초)` : '구간을 골라 주세요'}</div>
+      ${sample.used && sample.sel && html`<div class="hint" style=${{ color: '#ffa94d' }}>${`주황색 = 지금 쓰는 구간: ${sample.sel.start.toFixed(2)} ~ ${sample.sel.end.toFixed(2)}초`}</div>`}
       <div style=${{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
         <button class="btn" onClick=${preview} disabled=${!sel}>미리 듣기</button>
         <button class="btn ghost" onClick=${onClose}>취소</button>
+        ${sample.used && html`<button class="btn" onClick=${release}>사용 구간 해제</button>`}
         <button class="btn" disabled=${!sel || sel.end - sel.start < 0.05} onClick=${() => onApply(sel)}>이 구간 사용</button>
         <button class="btn primary" disabled=${!sel || sel.end - sel.start < 0.05} onClick=${() => onMakeNode(sel, marks)}>잘라서 노드로 만들기</button>
       </div>
@@ -1544,6 +1554,10 @@ function App() {
     });
     ui({ notice: "'" + base + "' 조각을 노드로 만들어 노드 모음에 넣었어요 (" + fmt(beats) + '박). 왼쪽 노드 모음에서 라인으로 끌어다 놓으세요' });
   };
+  const releaseUse = (s, sg) => {
+    upd((p) => { const x = p.samples.find((q) => q.id === s.id); x.sel = { start: sg.start, end: sg.end, root: sg.root }; x.used = false; delete x.bend; });
+    ui({ notice: '쓰는 구간을 풀고 처음 상태(첫 소리 조각)로 되돌렸어요' });
+  };
   const applyCut = async (s, sel, makeNode, marks) => {
     try {
       const infoOf = async (a, b) => (await api('/api/sample-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: s.file, start: a, end: b }) })).json();
@@ -1563,9 +1577,15 @@ function App() {
           for (const q of r.parts) { const m = await infoOf(q.a, q.b); parts.push({ a: q.a, b: q.b, root: m.root }); }
         }
       }
-      upd((p) => { const x = p.samples.find((q) => q.id === s.id); x.sel = { start: sel.start, end: sel.end, root: info.root }; delete x.bend; });   // a new range makes the old pitch curve meaningless
-      ui({ cutting: null, notice: info.pitched ? '' : '이 조각은 음높이가 없는 소리라 길이만 맞춰져요 (음이 바뀌지 않아요)' });
-      if (makeNode) makeSampleLibNode(s, sel, info.root, parts);
+      const unp = info.pitched ? '' : '이 조각은 음높이가 없는 소리라 길이만 맞춰져요 (음이 바뀌지 않아요)';
+      if (makeNode) {
+        // the node keeps its own cut, so the sample's range in use is left as it is
+        ui({ cutting: null, notice: unp });
+        makeSampleLibNode(s, sel, info.root, parts);
+      } else {
+        upd((p) => { const x = p.samples.find((q) => q.id === s.id); x.sel = { start: sel.start, end: sel.end, root: info.root }; x.used = true; delete x.bend; });   // a new range makes the old pitch curve meaningless
+        ui({ notice: unp || '이 구간을 쓰는 구간으로 정했어요. 파형의 주황색 부분이에요' });   // the window stays open so the coloured range can be seen
+      }
     } catch (e) { ui({ cutting: null, notice: e.message }); }
   };
   const addRef = async (file) => {
@@ -2358,7 +2378,7 @@ function App() {
     ${U.helpOpen && html`<${HelpModal} onClose=${() => ui({ helpOpen: false })} />`}
     ${U.planOpen && html`<${PlanModal} plan=${plan} notice=${U.notice} onClose=${() => ui({ planOpen: false, notice: '' })} onChange=${setPlan} />`}
     ${U.pitchEdit && sampleOf(U.pitchEdit) && html`<${PitchModal} sample=${sampleOf(U.pitchEdit)} bpm=${P.bpm} onClose=${() => ui({ pitchEdit: null })} onApply=${(as) => { const id = U.pitchEdit; upd((p) => { const s = p.samples.find((x) => x.id === id); if (as.length) s.bend = as; else delete s.bend; }); ui({ pitchEdit: null, notice: as.length ? '음높이 곡선을 적용했어요. 이 소리를 쓰는 모든 노드에 반영돼요' : '음높이 곡선을 원본으로 되돌렸어요' }); }} />`}
-    ${U.cutting && sampleOf(U.cutting) && html`<${SampleModal} sample=${sampleOf(U.cutting)} onClose=${() => { Prev.pause(); ui({ cutting: null }); }} onApply=${(sel) => applyCut(sampleOf(U.cutting), sel)} onMakeNode=${(sel, marks) => applyCut(sampleOf(U.cutting), sel, true, marks)} />`}
+    ${U.cutting && sampleOf(U.cutting) && html`<${SampleModal} sample=${sampleOf(U.cutting)} onClose=${() => { Prev.pause(); ui({ cutting: null }); }} onApply=${(sel) => applyCut(sampleOf(U.cutting), sel)} onMakeNode=${(sel, marks) => applyCut(sampleOf(U.cutting), sel, true, marks)} onRelease=${(sg) => releaseUse(sampleOf(U.cutting), sg)} />`}
   </div>`;
 }
 

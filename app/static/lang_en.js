@@ -505,7 +505,11 @@ export const EXACT = {
 "▶ 구간 원본 듣기": "▶ Listen to original (range)",
 "▶ 구간 수정 듣기": "▶ Listen to edited (range)",
 "듣는 구간 해제": "Clear listening range",
-"아래 소리 모양 줄을 좌우로 끌면 듣는 구간을 정해요. 구간을 정하면 듣기 버튼이 그 부분만 들려 줘요 (한 번 누르면 해제).": "Drag sideways along the sound-shape strip below to choose what to listen to. With a range chosen, the listen buttons play only that part (click once to clear)."
+"아래 소리 모양 줄을 좌우로 끌면 듣는 구간을 정해요. 구간을 정하면 듣기 버튼이 그 부분만 들려 줘요 (한 번 누르면 해제).": "Drag sideways along the sound-shape strip below to choose what to listen to. With a range chosen, the listen buttons play only that part (click once to clear).",
+"사용 구간 해제": "Clear range in use",
+"이 구간을 쓰는 구간으로 정했어요. 파형의 주황색 부분이에요": "This range is now the range in use. It is the orange part of the waveform.",
+"쓰는 구간을 풀고 처음 상태(첫 소리 조각)로 되돌렸어요": "Cleared the range in use and went back to the starting state (the first sound piece).",
+"\"이 구간 사용\"은 그 샘플의 쓸 구간을 정하고, 정한 구간은 파형에서 주황색으로 보여요. \"사용 구간 해제\"를 누르면 처음 상태로 돌아가요.": "“Use this range” sets the part of the sample that will be used and shows it in orange on the waveform. “Clear range in use” goes back to the starting state."
 };
 export const PATTERNS = [
 [
@@ -1051,5 +1055,9 @@ export const PATTERNS = [
 [
 "듣는 구간 {a}~{b}초",
 "Listening range {a}–{b} sec"
+],
+[
+"주황색 = 지금 쓰는 구간: {a} ~ {b}초",
+"Orange = range in use: {a} – {b} sec"
 ]
 ];

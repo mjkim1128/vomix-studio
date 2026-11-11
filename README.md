@@ -12,6 +12,7 @@
 - **노드 모음**: 만든 뭉치를 저장해 두고 라인에 끌어다 놓아요.
 - **여러 라인과 믹서**: 라인별 볼륨, 좌우 위치, 음소거/솔로, EQ, 컴프레서, 리버브, 마스터 볼륨.
 - **WAV 내보내기**: 모든 라인을 합친 스테레오 WAV.
+- **한국어 / English**: 위쪽의 언어 선택으로 화면 언어를 바꿀 수 있어요(처음에는 브라우저 언어를 따라요).
 
 ## 설치 (Windows 10 / 11)
 [Releases](../../releases)에서 설치 파일을 받아 실행해요. 파이썬은 따로 설치하지 않아도 돼요. 현재 사용자용으로 설치되며 관리자 권한은 필요 없어요.
@@ -48,4 +49,4 @@ Pro는 라이선스 키로 켜요. 자세한 조건은 [PRO-TERMS.md](PRO-TERMS.
 ---
 
 # English summary
-Vomix Studio is a local Windows tool for making otomad / YTPMV: short samples are fitted to the notes of a melody, with hints taken from a reference song. It does not compose for you. Free plan: 3 lines. Pro: unlimited lines and the precise 53-stem analysis. Source code is under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`, `PRO-TERMS.md`). Sponsors get about 3 months of Pro, useful feedback about 1 month — open a "Pro key request" issue.
+Vomix Studio is a local Windows tool for making otomad / YTPMV: short samples are fitted to the notes of a melody, with hints taken from a reference song. It does not compose for you. The interface is available in Korean and English. Free plan: 3 lines. Pro: unlimited lines and the precise 53-stem analysis. Source code is under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`, `PRO-TERMS.md`). Sponsors get about 3 months of Pro, useful feedback about 1 month — open a "Pro key request" issue.

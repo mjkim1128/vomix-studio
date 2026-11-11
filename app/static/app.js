@@ -1,7 +1,9 @@
 import { html, render, useState, useEffect, useRef, useMemo } from './vendor/htm-preact.js';
+import './i18n.js';   // language support (Korean / English); window.vomixTr translates a text for the chosen language
+const tx = (s) => window.vomixTr(s);   // names that are stored in Korean (default line names ...) are shown in the chosen language
 
 let PX = 96;   // pixels per beat: set from the project's horizontal zoom at the start of every App render
-const BUILD = '11/10-33';   // shown in the top bar so it is obvious whether the browser runs the newest code
+const BUILD = '11/11-34';   // shown in the top bar so it is obvious whether the browser runs the newest code
 let dragLib = null;   // the node-library entry that is being dragged (drag data cannot be read while dragging over)
 const HEADW = 168, TAB = 12, PILLTOP = 16;
 // heights that follow the vertical-size slider (set at the start of every App render); the minimums keep the
@@ -403,7 +405,7 @@ function EntryEditor({ P, entryId, grid, upd, ui, sampleOf, specOf, defaultSampl
     <div class="modal" style=${{ width: '900px', height: 'min(700px, 92vh)' }} role="dialog" aria-label="노드 뭉치 편집">
       <div style=${{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <b style=${{ fontSize: '15px', flex: 'none' }}>노드 뭉치 편집</b>
-        <input class="in" style=${{ flex: 1, fontWeight: 700 }} aria-label="노드 뭉치 이름" value=${e.name} onInput=${(ev) => edit((x) => { x.name = ev.target.value; })} />
+        <input class="in" style=${{ flex: 1, fontWeight: 700 }} aria-label="노드 뭉치 이름" value=${tx(e.name)} onInput=${(ev) => edit((x) => { x.name = ev.target.value; })} />
         <button class="btn sm" onClick=${onClose}>닫기</button></div>
       <div style=${row2}>
         <label class="hint">소리 <select class="in" style=${{ width: '200px', padding: '4px 6px', fontSize: '12px' }} value=${e.sampleId || ''} onChange=${(ev) => edit((x) => { x.sampleId = ev.target.value || null; })}>
@@ -423,16 +425,16 @@ function EntryEditor({ P, entryId, grid, upd, ui, sampleOf, specOf, defaultSampl
             style=${{ left: k.s * px + 1 + 'px', top: rows.indexOf(k.p) * RH + 2 + 'px', height: RH - 4 + 'px', width: Math.max(4, k.l * px - 2) + 'px', background: '#2dd4bf', fontSize: '10px' }}>${noteName(k.p)}</button>`)}
         </div>
       </div>
-      <div class="hint">노드를 누르면 고르고(Shift나 Ctrl을 누르면 여러 개), 위아래로 끌면 음높이, 옆으로 끌면 위치가 바뀌어요 (Alt: 격자 무시). ${e.notes.length}개 · ${fmt(e.l)}박</div>
+      <div class="hint">${`노드를 누르면 고르고(Shift나 Ctrl을 누르면 여러 개), 위아래로 끌면 음높이, 옆으로 끌면 위치가 바뀌어요 (Alt: 격자 무시). ${e.notes.length}개 · ${fmt(e.l)}박`}</div>
       <div style=${{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0, overflowY: 'auto' }} class="scroll">
-        <div style=${row2}><b class="hint" style=${{ width: '86px' }}>고른 노드 ${idx.length ? idx.length + '개' : '(없음)'}</b>
+        <div style=${row2}><b class="hint" style=${{ width: '86px' }}>${`고른 노드 ${idx.length ? idx.length + '개' : '(없음)'}`}</b>
           ${idx.length > 0 && html`<span style=${bar}><${B} t="반음 ↓" f=${() => pitch(-1)} /><${B} t="반음 ↑" f=${() => pitch(1)} /><${B} t="옥타브 ↓" f=${() => pitch(-12)} /><${B} t="옥타브 ↑" f=${() => pitch(12)} /></span>
           ${first && html`<label class="hint">시작(뭉치 안, 박) <input class="chip-in" type="number" step="0.01" style=${{ width: '78px' }} key=${'es' + idx[0] + first.s + msg} defaultValue=${fmt(first.s)} onChange=${(ev) => { const v = Number(ev.target.value); if (Number.isFinite(v)) editSel((k, x) => { k.s = clamp(r6(v), 0, Math.max(0, r6(x.l - k.l))); }); }} /></label>
             <label class="hint">길이(박) <input class="chip-in" type="number" step="0.01" min="0.06" style=${{ width: '78px' }} key=${'ee' + idx[0] + first.l + msg} defaultValue=${fmt(first.l)} onChange=${(ev) => { const v = Number(ev.target.value); if (Number.isFinite(v)) editSel((k, x) => { k.l = clamp(r6(v), 0.0625, Math.max(0.0625, r6(x.l - k.s))); }); }} /></label>`}`}
         </div>
         ${idx.length > 0 && html`<div style=${row2}><span class="hint" style=${{ width: '86px' }}>위치 미세 이동</span><span style=${bar}><${B} t="−0.1" f=${() => move(-0.1)} /><${B} t="−0.01" f=${() => move(-0.01)} /><${B} t="+0.01" f=${() => move(0.01)} /><${B} t="+0.1" f=${() => move(0.1)} /></span>
           <span class="hint" style=${{ marginLeft: '12px' }}>길이</span><span style=${bar}><${B} t="−0.1" f=${() => len(-0.1)} /><${B} t="−0.01" f=${() => len(-0.01)} /><${B} t="+0.01" f=${() => len(0.01)} /><${B} t="+0.1" f=${() => len(0.1)} /><${B} t=${fmt(grid) + '박 짧게'} f=${() => len(-grid)} /><${B} t=${fmt(grid) + '박 길게'} f=${() => len(grid)} /><${B} t="다음 노드 앞까지" f=${toNext} /></span></div>
-          <div style=${row2}><${B} primary=${true} t=${(idx.length > 1 ? '고른 노드 ' + idx.length + '개를' : '이 노드를') + ' 노드 모음에 따로 저장'} f=${exportSel} />
+          <div style=${row2}><${B} primary=${true} t=${idx.length > 1 ? '고른 노드 ' + idx.length + '개를 노드 모음에 따로 저장' : '이 노드를 노드 모음에 따로 저장'} f=${exportSel} />
             ${idx.length === 1 && html`<${B} t="한 칸 뒤에 복제" f=${dup} />`}<${B} danger=${true} t="지우기" f=${del} /></div>`}
         <div style=${row2}><${B} t=${'뭉치 안의 노드 ' + e.notes.length + '개를 하나씩 노드 모음에 저장'} f=${exportEach} />
           <${B} t="모두 선택" f=${() => setSel(e.notes.map((_, i) => i))} /><${B} t="선택 해제" f=${() => setSel([])} /></div>
@@ -447,12 +449,12 @@ function DropChooser({ P, choice, selLineId, onPick, onClose }) {
   return html`<div class="modal-bg" onMouseDown=${(e) => { if (e.target === e.currentTarget) onClose(); }}>
     <div class="modal" style=${{ width: '460px' }} role="dialog" aria-label="어디에 넣을까요">
       <b style=${{ fontSize: '16px' }}>어디에 넣을까요?</b>
-      <div class="hint">'${choice.file}' 소리로 만든 <b>${choice.name}</b> · 노드 ${choice.count}개 · ${fmt(choice.l)}박</div>
+      <div class="hint">${`'${choice.file}' 소리로 만든`} <b>${choice.name}</b> ${`· 노드 ${choice.count}개 · ${fmt(choice.l)}박`}</div>
       <div class="h-label">내 라인에 놓기 <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(노드 모음에도 자동으로 저장돼요)</span></div>
       <div style=${{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         ${P.lines.map((L) => html`<button key=${L.id} class=${'btn' + (L.id === selLineId ? ' primary' : '')} style=${{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }} onClick=${() => onPick(L.id)}>
           <i style=${{ width: '10px', height: '10px', borderRadius: '50%', background: L.color, flex: 'none' }}></i><span style=${{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${L.name}</span>
-          <span style=${{ fontWeight: 400, opacity: 0.8, fontSize: '12px' }}>노드 뭉치 ${L.nodes.length}개</span></button>`)}
+          <span style=${{ fontWeight: 400, opacity: 0.8, fontSize: '12px' }}>${`노드 뭉치 ${L.nodes.length}개`}</span></button>`)}
       </div>
       <div class="h-label">라인에는 놓지 않고</div>
       <button class="btn" onClick=${() => onPick('lib')}>노드 모음에만 넣기 <span style=${{ fontWeight: 400, opacity: 0.8, fontSize: '12px' }}>(노드 뭉치만 저장)</span></button>
@@ -486,8 +488,8 @@ function PlanModal({ plan, onClose, onChange, notice }) {
       ${notice && html`<div class="notice">${notice}</div>`}
       <div style=${{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', background: 'var(--card)', borderRadius: '8px', overflow: 'hidden' }}>
         <div style=${{ padding: '8px 10px', fontSize: '12px', color: 'var(--sub)' }}>기능</div>
-        <div style=${{ padding: '8px 10px', fontSize: '12px', color: 'var(--sub)' }}>무료${!pro ? ' (지금)' : ''}</div>
-        <div style=${{ padding: '8px 10px', fontSize: '12px', color: 'var(--accent-text)' }}>프로${pro ? ' (지금)' : ''}</div>
+        <div style=${{ padding: '8px 10px', fontSize: '12px', color: 'var(--sub)' }}>${`무료${!pro ? ' (지금)' : ''}`}</div>
+        <div style=${{ padding: '8px 10px', fontSize: '12px', color: 'var(--accent-text)' }}>${`프로${pro ? ' (지금)' : ''}`}</div>
         <div style=${cell}>내 라인 개수</div><div style=${cell}>${lim(free.max_lines)}</div><div style=${cell}>무제한</div>
         <div style=${cell}>참조곡 힌트</div><div style=${cell}>기본 (소리 6개로 나눔)</div><div style=${cell}>정밀 (최대 53개로 나눔)</div>
         <div style=${cell}>그 밖의 모든 기능</div><div style=${cell}>같음</div><div style=${cell}>같음</div>
@@ -565,8 +567,8 @@ function SampleModal({ sample, onClose, onApply, onMakeNode }) {
   return html`<div class="modal-bg" onMouseDown=${(e) => { if (e.target === e.currentTarget) onClose(); }}>
     <div class="modal" role="dialog" aria-label="샘플 자르기">
       <div style=${{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <b style=${{ fontSize: '15px' }}>샘플 자르기 · ${sample.file}</b>
-        <span class="hint">${dur.toFixed(2)}초</span>
+        <b style=${{ fontSize: '15px' }}>${`샘플 자르기 · ${sample.file}`}</b>
+        <span class="hint">${`${dur.toFixed(2)}초`}</span>
       </div>
       <div class="hint">소리 덩어리를 눌러 고르거나, 끌어서 원하는 구간을 직접 정하세요. 한 번에 소리 하나(한 번 울린 소리)만 고르면 피치가 가장 잘 맞아요.</div>
       <div class="wave" ref=${box} onMouseDown=${down}>
@@ -757,7 +759,7 @@ function RefLane({ def, ctx }) {
   const count = notes.length ? notes.length + (def.kind === 'drum' ? '번 타격' : '개 음') + (def.poly ? ' · 한 줄 정리' : '') : '없음';
   return html`<div class="row" key=${def.key}>
     <div class="hd ref" style=${{ height: h + 'px' }} title=${count}>
-      <input class="lname" style=${{ fontSize: '12.5px', color: '#c3cad6' }} aria-label="참조 소리 이름" value=${def.name} onInput=${(e) => ctx.renameLane(def.key, e.target.value)} />
+      <input class="lname" style=${{ fontSize: '12.5px', color: '#c3cad6' }} aria-label="참조 소리 이름" value=${tx(def.name)} onInput=${(e) => ctx.renameLane(def.key, e.target.value)} />
       <div class="seg-toggle">
         <button class=${'tbtn' + (!large ? ' on' : '')} style=${{ flex: 1, padding: 0 }} aria-label=${def.name + ' 작게 보기'} onClick=${() => ctx.setRefSize(def.key, 'small')}>작게</button>
         <button class=${'tbtn' + (large ? ' on' : '')} style=${{ flex: 1, padding: 0 }} aria-label=${def.name + ' 크게 보기'} onClick=${() => ctx.setRefSize(def.key, 'large')}>크게</button>
@@ -770,7 +772,7 @@ function RefLane({ def, ctx }) {
       ${isRoll && def.kind === 'pitch' && html`<${Keys} rows=${rowList} rh=${rowH} top=${2} />`}
       ${isRoll && def.kind === 'drum' && html`<div class="keys" style=${{ marginTop: '2px', height: 3 * rowH + 'px' }}>${DRUM_ROWS.map((n) => html`<div key=${n} class="key" style=${{ height: rowH + 'px', lineHeight: rowH + 'px', fontSize: '9px' }}>${n}</div>`)}</div>`}
       <canvas ref=${cv} style=${{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}></canvas>
-      ${sel && html`<div class="selbox" style=${{ left: sel.a * PX + 'px', width: (sel.b - sel.a) * PX + 'px' }}>${fmt(sel.b - sel.a)}박</div>`}
+      ${sel && html`<div class="selbox" style=${{ left: sel.a * PX + 'px', width: (sel.b - sel.a) * PX + 'px' }}>${`${fmt(sel.b - sel.a)}박`}</div>`}
     </div>
   </div>`;
 }
@@ -817,7 +819,7 @@ function LineRow({ L, ctx }) {
     <div class="hd" style=${{ height: h + 'px', borderColor: onLine ? L.color : '' }} onDragOver=${(e) => { if (dragLib) e.preventDefault(); }} onDrop=${(e) => ctx.libDropHeader(L, e)}>
       <div style=${{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style=${{ flex: 'none', width: '8px', height: '8px', borderRadius: '50%', background: L.color }}></span>
-        <input class="lname" aria-label="라인 이름" value=${L.name} onFocus=${() => ui({ selLine: L.id })}
+        <input class="lname" aria-label="라인 이름" value=${tx(L.name)} onFocus=${() => ui({ selLine: L.id })}
           onInput=${(e) => upd((p) => { p.lines.find((x) => x.id === L.id).name = e.target.value; })} />
         <button class="tbtn" style=${{ flex: 'none', width: '22px', padding: 0, opacity: P.lines.length < 2 ? 0.4 : 1 }} title=${P.lines.length < 2 ? '라인은 최소 1개가 있어야 해요' : '이 라인 지우기'} aria-label=${L.name + ' 라인 지우기'} onClick=${() => ctx.deleteLine(L.id)}>✕</button>
       </div>
@@ -832,7 +834,7 @@ function LineRow({ L, ctx }) {
         <button class=${'tbtn' + (L.solo ? ' on' : '')} style=${{ flex: 1, padding: 0, background: L.solo ? '#7ee8d9' : '', color: L.solo ? '#06231f' : '', borderColor: L.solo ? '#7ee8d9' : '' }} title="솔로: 이 라인만 듣기" aria-label=${L.name + ' 솔로'} aria-pressed=${!!L.solo} onClick=${() => upd((p) => { const x = p.lines.find((q) => q.id === L.id); x.solo = !x.solo; })}>S 솔로</button>
       </div>
       ${large && html`<div style=${{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span style=${{ flex: 1, minWidth: 0, fontSize: '11px', color: '#9aa4b5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>소리: ${smp ? smp.file : '없음'}</span>
+        <span style=${{ flex: 1, minWidth: 0, fontSize: '11px', color: '#9aa4b5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${`소리: ${smp ? smp.file : '없음'}`}</span>
       </div>`}
       ${large && html`<div class="seg-toggle">
         <button class=${'tbtn' + (compact ? ' on' : '')} style=${{ flex: 1, padding: 0 }} aria-label="쓰는 음만 보기 (안 쓰는 높낮이 줄 숨기기)" onClick=${() => upd((p) => { p.lines.find((x) => x.id === L.id).compact = !compact; })}>쓰는 음만</button>
@@ -1441,7 +1443,7 @@ function App() {
     try {
       const url = await renderUrl(payload('all'));
       const a = document.createElement('a');
-      a.href = url; a.download = '내 곡.wav'; a.click();
+      a.href = url; a.download = tx('내 곡.wav'); a.click();
       ui({ rendering: null, notice: 'WAV로 내보냈어요 (내 곡.wav)' });
     } catch (e) { ui({ rendering: null, notice: e.message }); }
   };
@@ -1839,7 +1841,7 @@ function App() {
 
   return html`<div class="app">
     <div class="top">
-      <div class="brand" style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}><img src="assets/mark_56.png" alt="" width="28" height="28" style=${{ display: 'block' }} />Vomix Studio <span style=${{ fontWeight: 400, color: '#9aa4b5', fontSize: '12px' }}>빌드 ${BUILD}</span></div>
+      <div class="brand" style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}><img src="assets/mark_56.png" alt="" width="28" height="28" style=${{ display: 'block' }} />Vomix Studio <span style=${{ fontWeight: 400, color: '#9aa4b5', fontSize: '12px' }}>${`빌드 ${BUILD}`}</span></div>
       <div style=${{ flex: 1 }}></div>
       <label style=${{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#9aa4b5' }}>BPM
         <input class="chip-in" type="number" min="40" max="240" value=${P.bpm} onInput=${(e) => upd((p) => { p.bpm = clamp(Number(e.target.value) || 120, 40, 240); })} /></label>
@@ -1851,7 +1853,8 @@ function App() {
         <input type="range" min="24" max="320" step="4" value=${PX} aria-label="타임라인 가로 크기 (Ctrl + 휠)" onInput=${(e) => upd((p) => { p.zoom = Number(e.target.value); })} /></label>
       <label style=${{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#9aa4b5' }} title="Alt + 마우스 휠로도 조절돼요">세로
         <input type="range" min="18" max="64" step="2" value=${rh} aria-label="모든 레인과 라인의 세로 크기 (Alt + 휠)" onInput=${(e) => upd((p) => { p.rowH = Number(e.target.value); })} /></label>
-      <button class="btn sm" onClick=${() => ui({ helpOpen: true })}>사용법</button>
+      <select class="chip-in" style=${{ width: '92px' }} aria-label="Language" title="Language / 언어" value=${window.VOMIX_LANG} onChange=${(e) => window.vomixSetLang(e.target.value)}><option value="ko">한국어</option><option value="en">English</option></select>
+        <button class="btn sm" onClick=${() => ui({ helpOpen: true })}>사용법</button>
       <button class="btn sm" style=${{ borderColor: plan.plan === 'pro' ? '#2dd4bf' : '' }} title="무료와 프로의 차이, 라이선스 키 입력" onClick=${() => ui({ planOpen: true })}>${plan.plan === 'pro' ? '프로 플랜' : '무료 플랜'}</button>
       <button class="btn primary" disabled=${U.rendering === 'export'} onClick=${exportWav}>WAV 내보내기</button>
     </div>
@@ -1886,14 +1889,14 @@ function App() {
           <div class="win-b scroll">
             <select class="in" style=${{ flex: 'none', padding: '5px 8px', fontSize: '12px' }} aria-label="분리 정밀도" value=${U.refModel} onChange=${(e) => { if (e.target.value === 'mega53' && !(plan.limits && plan.limits.precise_hints)) { ui({ planOpen: true, notice: '정밀 참조곡 힌트는 프로 플랜에서 쓸 수 있어요' }); return; } ui({ refModel: e.target.value }); }}>
               <option value="htdemucs_6s">빠르게 · 소리 6개 (약 4분)</option>
-              <option value="mega53">${plan.limits && plan.limits.precise_hints ? '' : '🔒 프로 · '}정밀하게 · 소리 최대 53개 (곡 길이의 약 11배)</option>
+              <option value="mega53">${`${plan.limits && plan.limits.precise_hints ? '' : '🔒 프로 · '}정밀하게 · 소리 최대 53개 (곡 길이의 약 11배)`}</option>
             </select>
-            ${P.ref && !refJob && html`<div class="hint" style=${{ flex: 'none', padding: '0 2px' }}>지금 결과: ${modelLabel(P.ref.model)}</div>`}
-            ${P.ref && !refJob && (P.ref.model || '') !== U.refModel && html`<button class="btn sm" style=${{ flex: 'none', whiteSpace: 'normal', textAlign: 'left' }} onClick=${reanalyze}>이 곡을 '${modelLabel(U.refModel)}'으로 다시 분석<br /><span style=${{ color: '#9aa4b5' }}>파일을 다시 고를 필요 없어요 · 끝날 때까지 지금 결과는 그대로예요</span></button>`}
+            ${P.ref && !refJob && html`<div class="hint" style=${{ flex: 'none', padding: '0 2px' }}>${`지금 결과: ${modelLabel(P.ref.model)}`}</div>`}
+            ${P.ref && !refJob && (P.ref.model || '') !== U.refModel && html`<button class="btn sm" style=${{ flex: 'none', whiteSpace: 'normal', textAlign: 'left' }} onClick=${reanalyze}>${`이 곡을 '${modelLabel(U.refModel)}'으로 다시 분석`}<br /><span style=${{ color: '#9aa4b5' }}>파일을 다시 고를 필요 없어요 · 끝날 때까지 지금 결과는 그대로예요</span></button>`}
             ${refJob && html`<div style=${{ flex: 'none', padding: '4px 2px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style=${{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${refJob.name}</div>
               <div class="prog"><i></i></div>
-              <div class="hint">${refJob.phase} · ${refJob.elapsed || 0}초</div>
+              <div class="hint">${`${refJob.phase} · ${refJob.elapsed || 0}초`}</div>
             </div>`}
             ${!refJob && !P.ref && html`<div class="hint" style=${{ padding: '4px' }}>참조곡을 추가하면 소리별(보컬, 드럼, 베이스, 기타, 피아노 등)로 나눠서 음을 뽑아 줘요. 몇 분 걸려요.</div>`}
             ${P.ref && html`<div style=${{ flex: 'none', fontWeight: 500, fontSize: '13px', padding: '0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${P.ref.name}</div>
@@ -1911,7 +1914,7 @@ function App() {
               ${more.length > 0 && html`<div class="hint" style=${{ flex: 'none', padding: '4px 2px 0' }}>나뉘었지만 음을 아직 안 뽑은 소리 (누르면 뽑아요)</div>`}
               ${more.map((a) => html`<div class="lrow" key=${a.key}>
                 <span class="nm" style=${{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>${a.name}</span>
-                <span class="sub">크기 ${a.rms}</span>
+                <span class="sub">${`크기 ${a.rms}`}</span>
                 <button class="tbtn" disabled=${!!U.analyzing} aria-label=${a.name + ' 음 뽑기'} onClick=${() => analyzeStem(a.key)}>${U.analyzing === a.key ? '뽑는 중…' : '음 뽑기'}</button>
               </div>`)}`}
           </div>
@@ -1930,12 +1933,12 @@ function App() {
                 onDragStart=${(e) => { e.dataTransfer.setData('text/plain', 'lib:' + d.id); e.dataTransfer.effectAllowed = 'copy'; dragLib = { id: d.id, l: d.l }; }}
                 onDragEnd=${() => { dragLib = null; ui({ dropPrev: null }); }}
                 onClick=${() => ui({ libSel: U.libSel === d.id ? null : d.id })} onDblClick=${() => ui({ entryEdit: d.id })}>
-                <div class="nm" style=${{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style=${{ color: 'var(--dim)', marginRight: '6px', letterSpacing: '-2px' }} aria-hidden="true">⋮⋮</span>${d.name}</div><div class="sub">${fmt(d.l)}박 · 노드 ${d.notes.length}개${d.at != null ? ' · 원곡 ' + fmt(d.at + 1) + '박째' : ''}${d.sampleId && sampleOf(d.sampleId) ? ' · ' + sampleOf(d.sampleId).file : ''}</div></button>
+                <div class="nm" style=${{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style=${{ color: 'var(--dim)', marginRight: '6px', letterSpacing: '-2px' }} aria-hidden="true">⋮⋮</span>${d.name}</div><div class="sub">${`${fmt(d.l)}박 · 노드 ${d.notes.length}개${d.at != null ? ' · 원곡 ' + fmt(d.at + 1) + '박째' : ''}${d.sampleId && sampleOf(d.sampleId) ? ' · ' + sampleOf(d.sampleId).file : ''}`}</div></button>
               ${U.libSel === d.id && html`<div class="libact" style=${{ width: '100%' }}>
                 <button class="chipbtn" onClick=${() => ui({ entryEdit: d.id })}>노드 편집</button>
                 <button class="chipbtn" onClick=${() => addFromLib(d)}>선택 라인에 추가</button>
-                ${d.at != null && html`<button class="chipbtn" onClick=${() => placeLibAt(d, d.at)}>참조 위치(${fmt(d.at + 1)}박)에 놓기</button>`}
-                ${guide != null && html`<button class="chipbtn" onClick=${() => placeLibAt(d, guide)}>기준선(${fmt(guide + 1)}박)에 놓기</button>`}
+                ${d.at != null && html`<button class="chipbtn" onClick=${() => placeLibAt(d, d.at)}>${`참조 위치(${fmt(d.at + 1)}박)에 놓기`}</button>`}
+                ${guide != null && html`<button class="chipbtn" onClick=${() => placeLibAt(d, guide)}>${`기준선(${fmt(guide + 1)}박)에 놓기`}</button>`}
                 <button class="chipbtn" onClick=${() => { upd((p) => { p.lib = p.lib.filter((x) => x.id !== d.id); }); ui({ libSel: null }); }}>삭제</button>
               </div>`}
             </div>`)}
@@ -1949,7 +1952,7 @@ function App() {
           <div style=${{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
             <div class="t">참조곡에서 구간을 끌어 고르고, 샘플을 놓으세요 · 라인은 '작게'/'크게'로 볼 수 있어요</div>
             ${selRef && html`<div style=${{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style=${{ fontSize: '12px', color: '#7ee8d9' }}>${selRef.only != null ? onlyName(selRef) + ' 한 음' : refDef(selRef.key).name + ' ' + rangeText(selRef.a, selRef.b)} 선택됨 (${fmt(selRef.b - selRef.a)}박)</span>
+              <span style=${{ fontSize: '12px', color: '#7ee8d9' }}>${`${selRef.only != null ? onlyName(selRef) + ' 한 음' : refDef(selRef.key).name + ' ' + rangeText(selRef.a, selRef.b)} 선택됨 (${fmt(selRef.b - selRef.a)}박)`}</span>
               <button class="btn sm" onClick=${() => playRange('stem')}>${U.rangePlaying === 'stem' ? '■ 멈춤' : '▶ 구간 듣기 (' + refDef(selRef.key).name + ')'}</button>
               <button class="btn sm" onClick=${() => playRange('orig')}>${U.rangePlaying === 'orig' ? '■ 멈춤' : '▶ 원곡으로 듣기'}</button>
               <button class="btn sm" onClick=${() => createFromSel(null)}>라인 샘플로 넣기 (어디에 넣을지 묻기)</button>
@@ -1959,7 +1962,7 @@ function App() {
               <label style=${{ fontSize: '12px', color: '#9aa4b5', display: 'flex', alignItems: 'center', gap: '4px' }}><input type="checkbox" checked=${U.fold} onChange=${(e) => ui({ fold: e.target.checked })} />샘플 음높이 ±1옥타브로 접기</label>
             </div>`}
             ${U.armed && html`<div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style=${{ fontSize: '12px', color: '#7ee8d9' }}>들고 있는 샘플: ${(sampleOf(U.armed) || {}).file} · 선택한 구간을 누르세요</span>
+              <span style=${{ fontSize: '12px', color: '#7ee8d9' }}>${`들고 있는 샘플: ${(sampleOf(U.armed) || {}).file} · 선택한 구간을 누르세요`}</span>
               <button class="btn sm ghost" onClick=${() => ui({ armed: null })}>내려놓기</button></div>`}
             ${U.notice && html`<div class="notice">${U.notice}</div>`}
           </div>
@@ -1973,14 +1976,14 @@ function App() {
             <div class="ruler"><div class="hd-s">박</div>
               <div class="rl" title="눌러서 세로 기준선을 놓고, 끌어서 옮겨요 (Alt = 격자 무시)" style=${{ width: T * PX + 'px', cursor: 'pointer' }} onMouseDown=${startGuideDrag}>${Array.from({ length: Math.ceil(T / 4) }, (_, i) => html`<span key=${i} style=${{ left: i * 4 * PX + 4 + 'px' }}>${i + 1}</span>`)}
                 ${guide != null && html`<div class="gflag" style=${{ left: guide * PX + 'px' }}>${fmt(guide + 1)}</div>`}</div></div>
-            ${P.ref ? html`<div class="sect">참조곡 힌트 · 칸을 끌어 구간을 고른 뒤 샘플을 놓으세요 · 놓을 라인: '${line ? line.name : '(없음)'}'</div>` : null}
+            ${P.ref ? html`<div class="sect">${`참조곡 힌트 · 칸을 끌어 구간을 고른 뒤 샘플을 놓으세요 · 놓을 라인: '${line ? line.name : '(없음)'}'`}</div>` : null}
             ${visRef.map((d) => html`<${RefLane} def=${d} ctx=${ctx} key=${d.key} />`)}
             <div class="sect">내 라인
               <button class=${'tbtn' + (playingAll ? ' on' : '')} style=${{ height: '22px', padding: '0 10px', background: playingAll ? '#2dd4bf' : '', color: playingAll ? '#06231f' : '', fontWeight: 700 }} onClick=${() => play('all')}>${U.rendering === 'all' ? '만드는 중…' : playingAll ? '■ 전체 정지' : '▶ 전체 재생'}</button>
             </div>
             ${P.lines.map((L) => html`<${LineRow} L=${L} ctx=${ctx} key=${L.id} />`)}
             <button class="btn" style=${{ width: HEADW + 'px', position: 'sticky', left: 0, borderStyle: 'dashed' }}
-              onClick=${() => { if (lineFull) { ui({ planOpen: true, notice: '무료 플랜은 내 라인을 ' + maxLines + '개까지 만들 수 있어요' }); return; } const id = uid('L'); upd((p) => { p.lines.push({ id, name: '새 라인 ' + (p.lines.length + 1), color: COLORS[p.lines.length % COLORS.length], size: 'small', sampleId: P.samples[0] ? P.samples[0].id : null, nodes: [] }); }); ui({ selLine: id, selNode: null, selNote: null }); }}>${lineFull ? html`+ 라인 추가 (${P.lines.length}/${maxLines} · 프로)` : '+ 라인 추가'}</button>
+              onClick=${() => { if (lineFull) { ui({ planOpen: true, notice: '무료 플랜은 내 라인을 ' + maxLines + '개까지 만들 수 있어요' }); return; } const id = uid('L'); upd((p) => { p.lines.push({ id, name: '새 라인 ' + (p.lines.length + 1), color: COLORS[p.lines.length % COLORS.length], size: 'small', sampleId: P.samples[0] ? P.samples[0].id : null, nodes: [] }); }); ui({ selLine: id, selNode: null, selNote: null }); }}>${lineFull ? `+ 라인 추가 (${P.lines.length}/${maxLines} · 프로)` : '+ 라인 추가'}</button>
             ${guide != null && html`<div class="guideline" style=${{ left: HEADW + guide * PX + 'px' }}></div>`}
             <${Playhead} scrollRef=${scrollRef} />
           </div>
@@ -1988,12 +1991,12 @@ function App() {
         <${MixDock} P=${P} setMix=${setMix} setMaster=${setMaster} ui=${ui} open=${U.mixOpen !== false} resetAll=${resetMix} />
         <div class="transport">
           <button class="btn primary" onClick=${() => play('all')}>${playingAll ? '정지' : '재생'}</button>
-          <span class="hint">BPM ${P.bpm} · ${T}박</span>
+          <span class="hint">${`BPM ${P.bpm} · ${T}박`}</span>
         </div>
       </div>
 
       <div class="right scroll">
-        ${guideInfo && html`<div class="h-label">세로 기준선 · ${fmt(guide + 1)}박째</div>
+        ${guideInfo && html`<div class="h-label">${`세로 기준선 · ${fmt(guide + 1)}박째`}</div>
           <div class="card" style=${{ borderColor: '#f472b6' }}>
             <div class="gsec">이 박자에 나오는 참조 음</div>
             ${guideInfo.refs.length === 0 && html`<div class="hint">없음</div>`}
@@ -2003,7 +2006,7 @@ function App() {
             <div class="gsec">내 라인에 있는 것</div>
             ${guideInfo.mine.length === 0 && html`<div class="hint">없음</div>`}
             <div class="grow">${guideInfo.mine.map((x) => html`<button key=${x.q.id} class="chipbtn" onClick=${() => ui({ selLine: x.ln.id, selNode: x.q.id, selNote: null })}>${x.ln.name}: ${x.q.name}${x.notes.length ? ' (' + x.notes.map((k) => noteName(k.p)).join(', ') + ')' : ''}</button>`)}</div>
-            <div class="gsec">'${line ? line.name : P.lines[0].name}' 라인에 이 박자로 음 넣기</div>
+            <div class="gsec">${`'${line ? line.name : P.lines[0].name}' 라인에 이 박자로 음 넣기`}</div>
             <div class="grow"><select class="in" style=${{ width: '120px', padding: '4px 6px' }} aria-label="넣을 음" value=${String(U.gPitch)} onChange=${(e) => ui({ gPitch: Number(e.target.value) })}>
               ${Array.from({ length: 61 }, (_, i) => 96 - i).map((p) => html`<option key=${p} value=${String(p)}>${noteName(p)}</option>`)}</select>
               <button class="chipbtn" onClick=${() => insertNoteAtGuide(U.gPitch)}>기준선에 넣기</button></div>
@@ -2016,14 +2019,14 @@ function App() {
             ${refNoteDef.kind === 'pitch'
               ? html`<div class="kv"><span>음</span><span style=${{ fontSize: '20px', fontWeight: 700 }}>${noteName(refNoteData.p)} (${refNoteData.p})</span></div>`
               : html`<div class="kv"><span>종류</span><span>${refNoteData.k === 'kick' ? '킥' : refNoteData.k === 'snare' ? '스네어' : '하이햇'}</span></div>`}
-            <div class="kv"><span>시작</span><span>${fmt(refNoteData.t + 1)}박째 · ${(P.ref.offset + (refNoteData.t * 60) / P.ref.bpm).toFixed(2)}초</span></div>
-            ${refNoteData.l != null && html`<div class="kv"><span>길이</span><span>${fmt(refNoteData.l)}박</span></div>`}
+            <div class="kv"><span>시작</span><span>${`${fmt(refNoteData.t + 1)}박째 · ${(P.ref.offset + (refNoteData.t * 60) / P.ref.bpm).toFixed(2)}초`}</span></div>
+            ${refNoteData.l != null && html`<div class="kv"><span>길이</span><span>${`${fmt(refNoteData.l)}박`}</span></div>`}
             ${refNoteData.a != null && html`<div class="kv"><span>세기</span><span>${refNoteData.a}</span></div>`}
             ${refNoteDef.poly && html`<div class="kv"><span>구분</span><span>${refNoteData.m ? '멜로디 후보' : '반주 (구간 가져올 때는 빠져요)'}</span></div>`}
-            ${refNoteRun && refNoteRun.list.length > 1 && html`<div class="hint" style=${{ background: '#1b1f26', borderRadius: '8px', padding: '8px 10px' }}>같은 음이 끊김 없이 <b>${refNoteRun.list.length}개</b> 이어져 있어요 (지금 음은 ${refNoteRun.pos + 1}번째). 한 줄처럼 보여도 음은 따로따로예요.</div>`}
-            ${refHits.length > 0 && html`<div class="hint" style=${{ background: '#2a2216', border: '1px solid #f2c94c', borderRadius: '8px', padding: '8px 10px' }}>⚠ 이 음은 한 덩어리로 분석됐지만, 녹음을 들여다보면 <b>소리가 ${refHits.length + 1}번</b> 이어서 나요. 처음 + ${refHits.map((b) => fmt(b + 1) + '박째').join(', ')}에서 새로 시작해요.
+            ${refNoteRun && refNoteRun.list.length > 1 && html`<div class="hint" style=${{ background: '#1b1f26', borderRadius: '8px', padding: '8px 10px' }}>${`같은 음이 끊김 없이 ${refNoteRun.list.length}개 이어져 있어요 (지금 음은 ${refNoteRun.pos + 1}번째). 한 줄처럼 보여도 음은 따로따로예요.`}</div>`}
+            ${refHits.length > 0 && html`<div class="hint" style=${{ background: '#2a2216', border: '1px solid #f2c94c', borderRadius: '8px', padding: '8px 10px' }}>${`⚠ 이 음은 한 덩어리로 분석됐지만, 녹음을 들여다보면 소리가 ${refHits.length + 1}번 이어서 나요. 처음 + ${refHits.map((b) => fmt(b + 1) + '박째').join(', ')}에서 새로 시작해요.`}
               <div class="grow" style=${{ marginTop: '6px' }}><button class="chipbtn" onClick=${() => ui({ guide: refHits[0] })}>첫 새 소리 위치에 기준선 놓기</button></div></div>`}
-            ${refNoteWith.length > 0 && html`<div class="hint" style=${{ background: '#2a2216', border: '1px solid #f2c94c', borderRadius: '8px', padding: '8px 10px' }}>⚠ 같은 시간에 이 레인에서 <b>${refNoteWith.length}개 음</b>이 더 울려요. '녹음 그대로' 들으면 같이 섞여 들려요. '이 음만 듣기'는 줄여 줘요.
+            ${refNoteWith.length > 0 && html`<div class="hint" style=${{ background: '#2a2216', border: '1px solid #f2c94c', borderRadius: '8px', padding: '8px 10px' }}>${`⚠ 같은 시간에 이 레인에서 ${refNoteWith.length}개 음이 더 울려요. '녹음 그대로' 들으면 같이 섞여 들려요. '이 음만 듣기'는 줄여 줘요.`}
               <div class="grow" style=${{ marginTop: '6px' }}>${refNoteWith.map(({ n, j }) => html`<button key=${j} class="chipbtn" title=${refNoteDef.kind === 'pitch' && [0, 5, 7].includes((((n.p - refNoteData.p) % 12) + 12) % 12) ? '옥타브·4도·5도 관계라 배음이 겹쳐서, 이 음과 완전히 떼어 낼 수 없어요' : ''} onClick=${() => selectRefNote(U.refNote.key, j)}>${refNoteDef.kind === 'pitch' ? noteName(n.p) + ([0, 5, 7].includes((((n.p - refNoteData.p) % 12) + 12) % 12) ? ' (분리 어려움)' : '') : (n.k === 'kick' ? '킥' : n.k === 'snare' ? '스네어' : '하이햇')}</button>`)}</div></div>`}
             ${refNoteDef.kind === 'pitch'
               ? html`<button class="btn primary" onClick=${() => playIso(U.refNote.key, refNoteData)}>${U.rangePlaying === 'iso' ? '■ 멈춤' : '▶ 이 음만 듣기 (겹친 음 줄임)'}</button>
@@ -2031,22 +2034,22 @@ function App() {
               : html`<button class="btn primary" onClick=${() => playRange('stem')}>${U.rangePlaying === 'stem' ? '■ 멈춤' : '▶ 이 음 듣기'}</button>`}
             ${refNoteDef.kind === 'pitch' && html`<button class="btn" onClick=${() => playTone(refNoteData.p, refNoteData.l)}>♪ 이 음높이만 듣기 (단순한 소리)</button>`}
             <button class="btn" onClick=${() => saveRefNotes(U.refNote.key, [U.refNote.i])}>이 음만 노드 모음에 저장</button>
-            ${refNoteRun && refNoteRun.list.length > 1 && html`<button class="btn" onClick=${() => saveRefNotes(U.refNote.key, refNoteRun.list)}>연속된 같은 음 ${refNoteRun.list.length}개를 노드 모음에 저장</button>`}
+            ${refNoteRun && refNoteRun.list.length > 1 && html`<button class="btn" onClick=${() => saveRefNotes(U.refNote.key, refNoteRun.list)}>${`연속된 같은 음 ${refNoteRun.list.length}개를 노드 모음에 저장`}</button>`}
             <button class="btn ghost" onClick=${() => ui({ refNote: null })}>이 음 선택 해제</button>
           </div>`}
         <div class="h-label">선택한 노드 뭉치 <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(노드 여러 칸의 묶음)</span></div>
         ${!node && html`<div class="hint">라인에서 노드 뭉치를 눌러 선택하세요.</div>`}
         ${node && line && html`<div class="card edit" style=${{ borderColor: line.color }}>
-          <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}><span class="pill-tag" style=${{ background: line.color }}>수정 중</span><span class="hint">${line.name} 라인</span></div>
-          <input class="in" style=${{ fontSize: '16px', fontWeight: 700 }} aria-label="노드 이름" value=${node.name} onInput=${(e) => editNode((nd) => { nd.name = e.target.value; })} />
+          <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}><span class="pill-tag" style=${{ background: line.color }}>수정 중</span><span class="hint">${`${line.name} 라인`}</span></div>
+          <input class="in" style=${{ fontSize: '16px', fontWeight: 700 }} aria-label="노드 이름" value=${tx(node.name)} onInput=${(e) => editNode((nd) => { nd.name = e.target.value; })} />
           <div class="kv"><span>소리</span>
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="노드 소리" value=${node.sampleId || ''} onChange=${(e) => editNode((nd) => { nd.sampleId = e.target.value || null; })}>
-              <option value="">라인 기본 (${(sampleOf(line.sampleId) || {}).file || '없음'})</option>
+              <option value="">${`라인 기본 (${(sampleOf(line.sampleId) || {}).file || '없음'})`}</option>
               ${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.file}</option>`)}
             </select></div>
           <div class="kv"><span>길이 맞추기</span>
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="긴 음을 소리로 채우는 방법" title="늘리기: 샘플 하나를 음 길이만큼 늘려요 · 반복하기: 음이 샘플보다 훨씬 길면 샘플을 되풀이해요" value=${node.fit || ''} onChange=${(e) => editNode((nd) => { if (e.target.value) nd.fit = e.target.value; else delete nd.fit; })}>
-              <option value="">라인 설정 따르기 (${line.fit === 'repeat' ? '반복하기' : '늘리기'})</option>
+              <option value="">${`라인 설정 따르기 (${line.fit === 'repeat' ? '반복하기' : '늘리기'})`}</option>
               <option value="stretch">늘리기 (소리를 길게 늘임)</option>
               <option value="repeat">반복하기 (소리를 되풀이)</option>
             </select></div>
@@ -2054,24 +2057,24 @@ function App() {
           <div class="kv"><span>시작 (박째)</span><input class="in" type="number" step="0.01" style=${{ width: '110px', padding: '4px 6px' }} aria-label="노드 시작 위치 (박째)" key=${'s' + node.id + node.s + U.notice} defaultValue=${fmt(node.s + 1)} onChange=${(e) => setNodeStart(Number(e.target.value) - 1)} /></div>
           <div class="kv"><span>길이 (박)</span><input class="in" type="number" step="0.01" min="0.06" style=${{ width: '110px', padding: '4px 6px' }} aria-label="노드 길이 (박)" key=${'l' + node.id + node.l + U.notice} defaultValue=${fmt(node.l)} onChange=${(e) => setNodeLength(Number(e.target.value))} /></div>
           <div class="two"><button class="btn" onClick=${() => nudgeFine(-0.1)}>−0.1</button><button class="btn" onClick=${() => nudgeFine(-0.01)}>−0.01</button><button class="btn" onClick=${() => nudgeFine(0.01)}>+0.01</button><button class="btn" onClick=${() => nudgeFine(0.1)}>+0.1</button></div>
-          ${refPos != null && html`<button class="btn" onClick=${() => setNodeStart(refPos)}>참조곡 위치(${fmt(refPos + 1)}박째)에 맞추기</button>`}
-          ${guide != null && html`<button class="btn" onClick=${() => setNodeStart(guide)}>기준선(${fmt(guide + 1)}박째)으로 옮기기</button>`}
-          <div class="kv"><span>노드 전체 음높이</span><span>${sgn(node.shift || 0)} 반음</span></div>
+          ${refPos != null && html`<button class="btn" onClick=${() => setNodeStart(refPos)}>${`참조곡 위치(${fmt(refPos + 1)}박째)에 맞추기`}</button>`}
+          ${guide != null && html`<button class="btn" onClick=${() => setNodeStart(guide)}>${`기준선(${fmt(guide + 1)}박째)으로 옮기기`}</button>`}
+          <div class="kv"><span>노드 전체 음높이</span><span>${`${sgn(node.shift || 0)} 반음`}</span></div>
           <div class="two"><button class="btn" onClick=${() => transposeNode(-1)}>반음 내리기</button><button class="btn" onClick=${() => transposeNode(1)}>반음 올리기</button></div>
           <div class="two"><button class="btn" onClick=${() => transposeNode(-12)}>한 옥타브 내리기</button><button class="btn" onClick=${() => transposeNode(12)}>한 옥타브 올리기</button></div>
-          ${(node.shift || 0) !== 0 && html`<button class="btn ghost" onClick=${resetNodePitch}>음높이를 처음대로 (${sgn(-(node.shift || 0))}반음)</button>`}
+          ${(node.shift || 0) !== 0 && html`<button class="btn ghost" onClick=${resetNodePitch}>${`음높이를 처음대로 (${sgn(-(node.shift || 0))}반음)`}</button>`}
           ${node.src && html`<div class="kv"><span>참조 구간</span><span>${srcName(node.src)}</span></div>`}
-          <div class="two"><button class="btn" onClick=${() => trim(-grid)}>끝 ${fmt(grid)}박 줄이기</button><button class="btn" onClick=${() => trim(grid)}>끝 ${fmt(grid)}박 늘리기</button></div>
-          <div class="two"><button class="btn" onClick=${() => nudge(-1)}>${fmt(grid)}박 앞으로</button>
-            <button class="btn" onClick=${() => nudge(1)}>${fmt(grid)}박 뒤로</button></div>
+          <div class="two"><button class="btn" onClick=${() => trim(-grid)}>${`끝 ${fmt(grid)}박 줄이기`}</button><button class="btn" onClick=${() => trim(grid)}>${`끝 ${fmt(grid)}박 늘리기`}</button></div>
+          <div class="two"><button class="btn" onClick=${() => nudge(-1)}>${`${fmt(grid)}박 앞으로`}</button>
+            <button class="btn" onClick=${() => nudge(1)}>${`${fmt(grid)}박 뒤로`}</button></div>
           <button class="btn danger" onClick=${() => { upd((p) => { const L = p.lines.find((x) => x.id === line.id); L.nodes = L.nodes.filter((x) => x.id !== node.id); }); ui({ selNode: null, selNote: null, hoverNode: null }); }}>라인에서 빼기</button>
-          <button class="btn" onClick=${saveEachNoteToLib}>이 뭉치의 노드를 하나씩 모음에 저장 (${node.notes.length}개)</button>
+          <button class="btn" onClick=${saveEachNoteToLib}>${`이 뭉치의 노드를 하나씩 모음에 저장 (${node.notes.length}개)`}</button>
         </div>`}
-        ${note && html`<div class="h-label">선택한 노드${selIdx.length > 1 ? ' · ' + selIdx.length + '개' : ''} <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(뭉치 안의 한 칸)</span></div>
+        ${note && html`<div class="h-label">${`선택한 노드${selIdx.length > 1 ? ' · ' + selIdx.length + '개' : ''}`} <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(뭉치 안의 한 칸)</span></div>
           <div class="card">
             ${selIdx.length === 1
               ? html`<div class="kv"><span>음</span><span style=${{ fontSize: '22px', fontWeight: 700 }}>${noteName(note.p)}</span></div>
-                <div class="kv"><span>샘플 이동</span><span>${sgn(note.p - rootOf(node.sampleId || line.sampleId))} 반음</span></div>`
+                <div class="kv"><span>샘플 이동</span><span>${`${sgn(note.p - rootOf(node.sampleId || line.sampleId))} 반음`}</span></div>`
               : html`<div class="kv"><span>음</span><span style=${{ fontSize: '13px' }}>${selIdx.map((i) => noteName(node.notes[i].p)).join(', ')}</span></div>`}
             <div class="two"><button class="btn" onClick=${() => notePitch(-1)}>반음 ↓</button><button class="btn" onClick=${() => notePitch(1)}>반음 ↑</button>
               <button class="btn" onClick=${() => notePitch(-12)}>옥타브 ↓</button><button class="btn" onClick=${() => notePitch(12)}>옥타브 ↑</button></div>
@@ -2081,9 +2084,9 @@ function App() {
             <div class="two"><button class="btn" onClick=${() => noteMove(-0.1)}>−0.1</button><button class="btn" onClick=${() => noteMove(-0.01)}>−0.01</button><button class="btn" onClick=${() => noteMove(0.01)}>+0.01</button><button class="btn" onClick=${() => noteMove(0.1)}>+0.1</button></div>
             <div class="hint">길이 조절 (박)</div>
             <div class="two"><button class="btn" onClick=${() => noteLen(-0.1)}>−0.1</button><button class="btn" onClick=${() => noteLen(-0.01)}>−0.01</button><button class="btn" onClick=${() => noteLen(0.01)}>+0.01</button><button class="btn" onClick=${() => noteLen(0.1)}>+0.1</button></div>
-            <div class="two"><button class="btn" onClick=${() => noteLen(-grid)}>${fmt(grid)}박 짧게</button><button class="btn" onClick=${() => noteLen(grid)}>${fmt(grid)}박 길게</button></div>
+            <div class="two"><button class="btn" onClick=${() => noteLen(-grid)}>${`${fmt(grid)}박 짧게`}</button><button class="btn" onClick=${() => noteLen(grid)}>${`${fmt(grid)}박 길게`}</button></div>
             <button class="btn" onClick=${noteToNext}>다음 노드 앞까지 늘이기</button>
-            <button class="btn primary" onClick=${saveNotesToLib}>${selIdx.length > 1 ? '고른 노드 ' + selIdx.length + '개를' : '이 노드를'} 노드 모음에 저장</button>
+            <button class="btn primary" onClick=${saveNotesToLib}>${selIdx.length > 1 ? '고른 노드 ' + selIdx.length + '개를 노드 모음에 저장' : '이 노드를 노드 모음에 저장'}</button>
             <div class="two">${selIdx.length === 1 && html`<button class="btn" onClick=${duplicateNote}>한 칸 뒤에 복제</button>`}${selIdx.length === 1 && html`<button class="btn" onClick=${splitNode}>이 노드 앞에서 뭉치 쪼개기</button>`}</div>
             <button class="btn danger" onClick=${deleteNote}>${selIdx.length > 1 ? '고른 노드 지우기' : '이 노드 지우기'}</button>
             <div class="hint">Shift나 Ctrl을 누르고 노드를 누르면 여러 개를 함께 고를 수 있어요.</div>

@@ -458,7 +458,12 @@ export const EXACT = {
 "라이선스 기간이 끝났어요": "The license period has ended.",
 "라이선스 키를 읽지 못했어요": "Could not read the license key.",
 "이 노드를 노드 모음에 따로 저장": "Save this node separately to the Node Library",
-"이 노드를 노드 모음에 저장": "Save this node to the Node Library"
+"이 노드를 노드 모음에 저장": "Save this node to the Node Library",
+"복사": "Copy",
+"이 레인 전체를 내 라인의 새 라인으로 복사": "Copy this whole lane to a new line in My Lines",
+"먼저 샘플을 추가해 주세요. 새 라인의 소리로 쓸 샘플이 필요해요": "First add a sample. The new line needs a sample as its sound.",
+", 멜로디 후보만": ", melody candidates only",
+"참조곡 레인 이름 옆의 ⧉ 버튼을 누르면 그 레인의 음 전체가 내 라인의 새 라인으로 복사돼요. 정밀 분석으로 나눈 베이스 레인을 통째로 가져올 때 좋아요. 여러 음이 섞인 레인은 멜로디 후보만 가져와요.": "The ⧉ button next to a reference lane name copies all notes of that lane to a new line in My Lines. It is handy for taking, say, the bass lane of a precise analysis as a whole. For lanes with mixed notes, only the melody candidates are taken."
 };
 export const PATTERNS = [
 [
@@ -948,5 +953,21 @@ export const PATTERNS = [
 [
 "고른 노드 {a}개를 노드 모음에 저장",
 "Save the {a|selected node|selected nodes} to the Node Library"
+],
+[
+"{a} 레인을 새 라인으로 복사",
+"{a}: copy lane to a new line"
+],
+[
+"{a} 전체",
+"{a} (whole)"
+],
+[
+"{a}에는 가져올 음이 없어요",
+"{a} has no notes to copy."
+],
+[
+"'{a}' 레인을 새 라인으로 복사했어요 (노드 {b}개{c})",
+"Copied lane '{a}' to a new line ({b|node|nodes}{c})"
 ]
 ];

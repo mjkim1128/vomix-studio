@@ -226,7 +226,7 @@ const HELP = [
   { id: 'node', title: '노드와 라인', body: [
     ['p', '노드는 "어떤 음들을 어떤 길이로 연주할지"를 담은 덩어리예요. 라인은 노드를 놓는 한 줄이에요(메인 멜로디, 베이스 등).'],
     ['h', '노드 만들기'],
-    ['ul', ['참조곡 레인에서 구간을 끌어 고르고, 왼쪽 샘플을 끌어다 놓으면 그 구간의 음으로 노드가 만들어져요.', '샘플을 눌러 "든" 뒤 선택한 구간을 눌러도 돼요.', '"노드 모음"에 저장해 둔 노드는 라인으로 끌어다 놓거나, 눌러서 "선택 라인에 추가"해요.', '라인의 빈 곳을 두 번 누르면 음을 직접 추가해요.']],
+    ['ul', ['참조곡 레인에서 구간을 끌어 고르고, 왼쪽 샘플을 끌어다 놓으면 그 구간의 음으로 노드가 만들어져요.', '샘플을 눌러 "든" 뒤 선택한 구간을 눌러도 돼요.', '"노드 모음"에 저장해 둔 노드는 라인으로 끌어다 놓거나, 눌러서 "선택 라인에 추가"해요.', '라인의 빈 곳을 두 번 누르면 음을 직접 추가해요.', '참조곡 레인 이름 옆의 ⧉ 버튼을 누르면 그 레인의 음 전체가 내 라인의 새 라인으로 복사돼요. 정밀 분석으로 나눈 베이스 레인을 통째로 가져올 때 좋아요. 여러 음이 섞인 레인은 멜로디 후보만 가져와요.']],
     ['h', '참조곡 구간 → 노드 모음 → 노드 편집'],
     ['ol', ['참조곡에서 구간을 끌어 고르고 왼쪽 샘플을 끌어다 놓으면 "어디에 넣을까요?" 창이 떠요. 내 라인 중 하나를 고르면 그 라인에 놓이고 노드 모음에도 자동으로 저장돼요. "노드 모음에만 넣기"를 고르면 라인에는 놓지 않고 노드 뭉치만 노드 모음에 들어가요.', '노드 모음의 뭉치를 누르면 아래에 버튼이 나와요. "노드 편집"(또는 두 번 누르기)으로 편집 창을 열어요.', '편집 창에서 뭉치 안의 노드를 하나씩 고르고 음높이, 위치, 길이를 고치거나 지워요. 끌어서 옮길 수도 있어요.', '고른 노드(또는 전부 하나씩)를 "노드 모음에 따로 저장"해서 새 항목으로 내보낼 수 있어요.', '다 만든 뭉치는 노드 모음에서 라인으로 끌어다 놓아요. 라인의 빈 곳에 놓으면 그 위치에, 라인 이름 칸에 놓으면 그 라인의 첫 빈자리에 놓여요. 라인이 화면 밖에 있으면 끈 채로 타임라인의 아래 가장자리로 가져가면 스크롤돼요.']],
     ['h', '노드 뭉치와 노드'],
@@ -760,11 +760,12 @@ function RefLane({ def, ctx }) {
   return html`<div class="row" key=${def.key}>
     <div class="hd ref" style=${{ height: h + 'px' }} title=${count}>
       <input class="lname" style=${{ fontSize: '12.5px', color: '#c3cad6' }} aria-label="참조 소리 이름" value=${tx(def.name)} onInput=${(e) => ctx.renameLane(def.key, e.target.value)} />
-      <div class="seg-toggle">
+      <div class="seg-toggle" style=${{ gap: '3px' }}>
         <button class=${'tbtn' + (!large ? ' on' : '')} style=${{ flex: 1, padding: 0 }} aria-label=${def.name + ' 작게 보기'} onClick=${() => ctx.setRefSize(def.key, 'small')}>작게</button>
         <button class=${'tbtn' + (large ? ' on' : '')} style=${{ flex: 1, padding: 0 }} aria-label=${def.name + ' 크게 보기'} onClick=${() => ctx.setRefSize(def.key, 'large')}>크게</button>
         <button class="tbtn" style=${{ padding: '0 5px' }} aria-label=${def.name + ' 듣기'} onClick=${() => ctx.listenStem(def.key)}>${U.listen === def.key ? '■' : '듣기'}</button>
         <button class="tbtn" style=${{ padding: '0 5px' }} aria-label=${def.name + ' 숨기기'} onClick=${() => ui({ refOn: { ...U.refOn, [def.key]: false } })}>숨김</button>
+        <button class="tbtn" style=${{ padding: '0 4px' }} title="이 레인 전체를 내 라인의 새 라인으로 복사" aria-label=${def.name + ' 레인을 새 라인으로 복사'} onClick=${() => ctx.copyLaneToLine(def.key)}>⧉</button>
       </div>
     </div>
     <div class="lane ref" ref=${lane} style=${{ width: T * PX + 'px', height: h + 'px' }}
@@ -1028,6 +1029,23 @@ function App() {
     return (d.name || sel.key) + ' ' + (d.kind === 'drum' ? n.k || '타격' : noteName(n.p));
   };
   const srcName = (src) => ((defs.find((d) => d.key === src.key) || {}).name || src.key) + ' ' + rangeText(src.a, src.b);
+
+  // copy a whole reference lane (e.g. the bass of a precise analysis) to a NEW line of mine: one node bundle holding every note of the lane
+  const copyLaneToLine = (key) => {
+    if (!lanes || !lanes[key]) return;
+    const d = defs.find((x) => x.key === key) || { name: key, kind: 'pitch' };
+    const sid = (line && line.sampleId) || (P.samples[0] ? P.samples[0].id : null);
+    if (!sid) { ui({ notice: '먼저 샘플을 추가해 주세요. 새 라인의 소리로 쓸 샘플이 필요해요' }); return; }
+    if (lineFull) { ui({ planOpen: true, notice: '무료 플랜은 내 라인을 ' + maxLines + '개까지 만들 수 있어요' }); return; }
+    const ns = refNotes(key, 0, T, rootOf(sid), null);
+    if (!ns.length) { ui({ notice: d.name + '에는 가져올 음이 없어요' }); return; }
+    const id = uid('L'), nid = uid('n');
+    upd((p) => {
+      p.lines.push({ id, name: d.name, color: COLORS[p.lines.length % COLORS.length], size: 'small', sampleId: sid,
+        nodes: [{ id: nid, name: d.name + ' 전체', s: 0, l: T, notes: ns, refAt: 0, src: { key, a: 0, b: T }, sampleId: null }] });
+    });
+    ui({ selLine: id, selNode: nid, selNote: null, notice: "'" + d.name + "' 레인을 새 라인으로 복사했어요 (노드 " + ns.length + '개' + (d.poly ? ', 멜로디 후보만' : '') + ')' });
+  };
 
   // reference range + sample: ask where it should go (one of my lines, or only the node library), then make the node bundle there
   const prepFromSel = (sampleId) => {
@@ -1825,7 +1843,7 @@ function App() {
     return () => sc.removeEventListener('wheel', onWheel);
   }, []);
 
-  const ctx = { P, U, ui, upd, T, grid, rh, addNote, startNoteDrag, setRefSize, setView, libOver, libLeave, libDrop, selectRefNote, lanes, drag, suppress, startNodeDrag, sampleOf, rootOf, createFromSel, deleteLine, pickNote, libDropHeader, play, listenStem, renameLane };
+  const ctx = { P, U, ui, upd, T, grid, rh, addNote, startNoteDrag, setRefSize, setView, libOver, libLeave, libDrop, selectRefNote, lanes, drag, suppress, startNodeDrag, sampleOf, rootOf, createFromSel, copyLaneToLine, deleteLine, pickNote, libDropHeader, play, listenStem, renameLane };
   const selRef = U.refSel && lanes && defs.some((d) => d.key === U.refSel.key && isOn(d)) ? U.refSel : null;
   const visRef = defs.filter((d) => isOn(d));
   const playingAll = U.playing === 'all';

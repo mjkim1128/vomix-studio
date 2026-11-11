@@ -472,7 +472,40 @@ export const EXACT = {
 "라인을 '크게'로 바꾸고 노드를 누르면 선택돼요": "Switch the line to “Large” and click a node to select it",
 "이 뭉치를 노드 모음에 저장": "Save this bundle to the Node Library",
 "오른쪽 위의 \"노드 뭉치 / 노드\" 탭은 지금 무엇을 고치는지 보여 줘요. 노드를 고르면 \"노드\" 탭이 켜지고, \"노드 뭉치\" 탭을 누르면 뭉치 전체로 돌아가요.": "The “Node bundle / Node” tabs at the top right show what you are editing right now. Select a node and the “Node” tab turns on; press the “Node bundle” tab to return to the whole bundle.",
-"뭉치와 노드는 각각 \"노드 모음에 저장\" 버튼으로 노드 모음에 넣을 수 있어요. 노드 하나는 한 칸짜리 뭉치로 저장돼요.": "Bundles and nodes can each be put into the Node Library with their “Save to Node Library” button. A single node is saved as a one-cell bundle."
+"뭉치와 노드는 각각 \"노드 모음에 저장\" 버튼으로 노드 모음에 넣을 수 있어요. 노드 하나는 한 칸짜리 뭉치로 저장돼요.": "Bundles and nodes can each be put into the Node Library with their “Save to Node Library” button. A single node is saved as a one-cell bundle.",
+"Shift+클릭으로 선택한 구간 안에 나눔 표시를 넣으면, 조각마다 음이 하나씩 생겨요 (예: 야 / 임 / 마). 다시 Shift+클릭하면 지워져요.": "Shift+click inside the chosen range to add split marks; every piece becomes its own note (for example ya / im / ma). Shift+click a mark again to remove it.",
+"\"잘라서 노드로 만들기\"는 소리의 음높이가 바뀌는 곳마다 자동으로 나눠 음을 하나씩 만들어요. 직접 나누려면 구간 안을 Shift+클릭해 나눔 표시를 넣으세요 (다시 Shift+클릭하면 지워져요).": "“Trim and make node” splits the sound automatically wherever its pitch changes and makes one note for each piece. To split by hand, Shift+click inside the range to add split marks (Shift+click again to remove one).",
+"음높이 곡선": "Pitch curve",
+"곡선 편집": "Edit curve",
+"음높이 곡선 편집": "Edit pitch curve",
+"소리의 음높이 흐름을 마우스로 잡아당겨 고쳐요": "Pull the pitch movement of the sound with the mouse",
+"음높이를 분석하는 중이에요…": "Analyzing the pitch…",
+"파란 곡선을 잡고 위아래로 끌면 그 자리에 점이 생기고 곡선이 따라와요. 점을 다시 잡으면 그 점만 움직여요. 점을 주황 점선(원본)까지 끌어 놓으면 사라져요. 점을 더블클릭해도 지워져요.": "Grab the blue curve and drag it up or down: a point appears there and the curve follows. Grab a point again to move just that point. Drag a point back onto the orange dotted line (the original) and it disappears. Double-click a point to remove it too.",
+"선택한 점의 범위": "Range of the selected point",
+"새 점의 범위": "Range of a new point",
+"좌우로도 옮기기": "Move sideways too",
+"점선: 원본 음높이": "Dotted: original pitch",
+"파란 곡선: 지금 설정 · 동그라미: 고친 점": "Blue curve: current setting · circles: edited points",
+"수정 없음": "No changes",
+"원본 그대로 재생돼요 (보정 없음)": "Plays as recorded (no correction)",
+"선택한 점 지우기": "Delete selected point",
+"한 단계 취소": "Undo",
+"전부 원본으로": "Reset all to original",
+"■ 멈추기": "■ Stop",
+"▶ 원본 듣기": "▶ Listen to original",
+"▶ 수정 듣기": "▶ Listen to edited",
+"음높이 곡선을 적용했어요. 이 소리를 쓰는 모든 노드에 반영돼요": "Pitch curve applied. It affects every node that uses this sound.",
+"음높이 곡선을 원본으로 되돌렸어요": "Pitch curve restored to the original.",
+"노드 뭉치 카드의 \"음높이 곡선\" 줄에서 \"곡선 편집\"을 누르면 소리 전체의 음높이 흐름이 곡선으로 나와요. 곡선을 잡고 위아래로 끌면 그 자리에 점이 생기고 주변이 부드럽게 따라와요. 점을 다시 잡아 옮기거나, 원본 선까지 끌어 놓아 지울 수 있어요. 고치지 않은 부분은 원본 소리 그대로 나와요.": "On the node bundle card, press “Edit curve” in the “Pitch curve” row to see the pitch movement of the whole sound as a curve. Grab the curve and drag it up or down: a point appears and the nearby curve follows smoothly. Grab a point again to move it, or drag it back onto the original line to remove it. Parts you did not edit play as recorded.",
+"눈금": "Scale",
+"세로 눈금 범위": "Vertical scale range",
+"자동": "Auto",
+"±12반음 (1옥타브)": "±12 semitones (1 octave)",
+"±24반음 (2옥타브)": "±24 semitones (2 octaves)",
+"▶ 구간 원본 듣기": "▶ Listen to original (range)",
+"▶ 구간 수정 듣기": "▶ Listen to edited (range)",
+"듣는 구간 해제": "Clear listening range",
+"아래 소리 모양 줄을 좌우로 끌면 듣는 구간을 정해요. 구간을 정하면 듣기 버튼이 그 부분만 들려 줘요 (한 번 누르면 해제).": "Drag sideways along the sound-shape strip below to choose what to listen to. With a range chosen, the listen buttons play only that part (click once to clear)."
 };
 export const PATTERNS = [
 [
@@ -986,5 +1019,37 @@ export const PATTERNS = [
 [
 "'{a}' 노드 뭉치를 노드 모음에 저장했어요",
 "Saved node bundle '{a}' to the Node Library"
+],
+[
+"고치는 중 · 점 {a}개",
+"Edited · {a|point|points}"
+],
+[
+"음높이 곡선 · {a}",
+"Pitch curve · {a}"
+],
+[
+"고친 점 {a}개",
+"{a|edited point|edited points}"
+],
+[
+"최대 {a} 반음 · 점 바깥은 원본 소리 그대로 재생돼요",
+"Up to {a} semitones · outside the points the original sound plays as it is"
+],
+[
+"선택한 점: {a}초 · {b} 반음 · 범위 {c}%",
+"Selected point: {a} sec · {b} semitones · range {c}%"
+],
+[
+"{a}% (±{b}초)",
+"{a}% (±{b} sec)"
+],
+[
+"음높이 곡선 · 점 {a}개",
+"Pitch curve · {a|point|points}"
+],
+[
+"듣는 구간 {a}~{b}초",
+"Listening range {a}–{b} sec"
 ]
 ];

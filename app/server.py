@@ -47,6 +47,22 @@ def sample_audio(file: str):
     return FileResponse(p)
 
 
+@app.post("/api/sample-contour")
+def sample_contour(spec: dict = Body(...)):
+    try:
+        return engine.contour(spec)
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(400, str(ex))
+
+
+@app.post("/api/sample-split")
+def sample_split(spec: dict = Body(...)):
+    try:
+        return {"parts": engine.split_by_pitch(spec)}
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(400, str(ex))
+
+
 @app.post("/api/sample-info")
 def sample_info(spec: dict = Body(...)):
     try:

@@ -232,7 +232,7 @@ const HELP = [
     ['h', '노드 뭉치와 노드'],
     ['ul', ['참조곡 구간을 가져오거나 노드 모음에서 놓으면 라인에 "노드 뭉치"가 생겨요. 뭉치 안에는 음 하나(또는 목소리 한 발음)에 해당하는 "노드"가 여러 칸 들어 있어요.', '뭉치를 선택하면 뭉치 전체(위치, 길이, 전체 음높이)를 조정하고, 라인을 "크게"로 바꾸고 노드를 누르면 그 한 칸만 조정해요.', '노드 하나하나의 음높이, 위치, 길이를 따로 고쳐도 되고, Shift나 Ctrl을 누르고 여러 개를 골라 함께 고칠 수도 있어요.', '고친 노드는 "노드 모음에 저장"으로 따로 저장해 두었다가 다른 곳에 쓸 수 있어요. 뭉치 카드의 "하나씩 모음에 저장"은 뭉치 안의 모든 노드를 각각 저장해요.', '한 번 손으로 고친 뭉치는 뭉치 끝을 줄이거나 늘려도 참조곡에서 음을 다시 가져오지 않고 내가 고친 음을 그대로 둬요.']],
     ['h', '고치기'],
-    ['ul', ['노드 뭉치를 끌어서 옮겨요. 다른 라인으로도 옮길 수 있어요.', '노드를 선택하면 오른쪽에서 이름, 소리, 길이, 음높이(반음, 옥타브)를 바꿔요.', '라인을 "크게" 보기로 바꾸면 음을 하나씩 끌어서 높낮이와 위치를 고칠 수 있어요.', '"이 음 앞에서 노드 쪼개기", "이 음 지우기"도 있어요.', '노드 이름은 선택하거나 마우스를 올렸을 때만 보여요.', '오른쪽 위의 "노드 뭉치 / 노드" 탭은 지금 무엇을 고치는지 보여 줘요. 노드를 고르면 "노드" 탭이 켜지고, "노드 뭉치" 탭을 누르면 뭉치 전체로 돌아가요.', '뭉치와 노드는 각각 "노드 모음에 저장" 버튼으로 노드 모음에 넣을 수 있어요. 노드 하나는 한 칸짜리 뭉치로 저장돼요.']],
+    ['ul', ['노드 뭉치를 끌어서 옮겨요. 다른 라인으로도 옮길 수 있어요.', '노드를 선택하면 오른쪽에서 이름, 소리, 길이, 음높이(반음, 옥타브)를 바꿔요.', '라인을 "크게" 보기로 바꾸면 음을 하나씩 끌어서 높낮이와 위치를 고칠 수 있어요.', '"이 음 앞에서 노드 쪼개기", "이 음 지우기"도 있어요.', '노드 이름은 선택하거나 마우스를 올렸을 때만 보여요.', '오른쪽 위의 "노드 뭉치 / 노드" 탭은 지금 무엇을 고치는지 보여 줘요. 노드를 고르면 "노드" 탭이 켜지고, "노드 뭉치" 탭을 누르면 뭉치 전체로 돌아가요.', '뭉치와 노드는 각각 "노드 모음에 저장" 버튼으로 노드 모음에 넣을 수 있어요. 노드 하나는 한 칸짜리 뭉치로 저장돼요.', '노드 뭉치 카드의 "음높이 곡선" 줄에서 "곡선 편집"을 누르면 소리 전체의 음높이 흐름이 곡선으로 나와요. 곡선을 잡고 위아래로 끌면 그 자리에 점이 생기고 주변이 부드럽게 따라와요. 점을 다시 잡아 옮기거나, 원본 선까지 끌어 놓아 지울 수 있어요. 고치지 않은 부분은 원본 소리 그대로 나와요.']],
     ['p', '라인 이름은 직접 고쳐요. "+ 라인 추가"로 라인을 늘리고, 라인 이름 옆 ✕(또는 오른쪽 "이 라인 삭제")로 지워요. 라인은 최소 1개가 있어야 해요. 무료 플랜은 3개까지예요.']] },
   { id: 'place', title: '정밀 배치와 기준선', body: [
     ['h', '노드 위치를 정확히'],
@@ -337,7 +337,7 @@ function EntryEditor({ P, entryId, grid, upd, ui, sampleOf, specOf, defaultSampl
     const a0 = ns[0].s;
     const end = Math.max(...ns.map((k) => k.s + k.l));
     const l = Math.max(grid, r6(Math.ceil((end - a0) / grid - EPS) * grid));
-    return { id: uid('d'), name, l, notes: ns.map((k) => ({ s: r6(k.s - a0), l: k.l, p: k.p })), at: e.at != null ? r6(e.at + a0) : null, fit: e.fit || null, sampleId: e.sampleId || null };
+    return { id: uid('d'), name, l, notes: ns.map((k) => ({ s: r6(k.s - a0), l: k.l, p: k.p, ...(k.cs != null ? { cs: k.cs, ce: k.ce } : {}) })), at: e.at != null ? r6(e.at + a0) : null, fit: e.fit || null, sampleId: e.sampleId || null };
   };
   const exportSel = () => {
     if (!idx.length) return;
@@ -409,7 +409,8 @@ function EntryEditor({ P, entryId, grid, upd, ui, sampleOf, specOf, defaultSampl
         <button class="btn sm" onClick=${onClose}>닫기</button></div>
       <div style=${row2}>
         <label class="hint">소리 <select class="in" style=${{ width: '200px', padding: '4px 6px', fontSize: '12px' }} value=${e.sampleId || ''} onChange=${(ev) => edit((x) => { x.sampleId = ev.target.value || null; })}>
-          <option value="">쓰는 라인의 소리를 따라가요</option>${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.file}</option>`)}</select></label>
+          <option value="">쓰는 라인의 소리를 따라가요</option>${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.label || s.file}</option>`)}</select></label>
+        ${sampleOf(sid) && sampleOf(sid).sel && html`<button class="btn sm" title="소리의 음높이 흐름을 마우스로 잡아당겨 고쳐요" onClick=${() => { Ctl.el.pause(); Ctl.playingEntry = false; setPlaying(false); ui({ pitchEdit: sid }); }}>${sampleOf(sid).bend && sampleOf(sid).bend.length ? `음높이 곡선 · 점 ${sampleOf(sid).bend.length}개` : '음높이 곡선 편집'}</button>`}
         <label class="hint">길이 맞추기 <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} value=${e.fit || ''} onChange=${(ev) => edit((x) => { if (ev.target.value) x.fit = ev.target.value; else delete x.fit; })}>
           <option value="">라인 설정 따르기</option><option value="stretch">늘리기</option><option value="repeat">반복하기</option></select></label>
         <label class="hint">뭉치 길이(박) <input class="chip-in" type="number" step="0.25" min="0.0625" style=${{ width: '74px' }} key=${'el' + e.l} defaultValue=${fmt(e.l)} onChange=${(ev) => setLenAll(Number(ev.target.value))} /></label>
@@ -512,6 +513,7 @@ function SampleModal({ sample, onClose, onApply, onMakeNode }) {
   const cv = useRef(null);
   const box = useRef(null);
   const [sel, setSel] = useState(sample.sel ? { start: sample.sel.start, end: sample.sel.end } : null);
+  const [marks, setMarks] = useState([]);   // split points inside the chosen range (Shift+click): one note per piece
   const drag = useRef(null);
   const dur = sample.duration;
   useEffect(() => {
@@ -535,6 +537,12 @@ function SampleModal({ sample, onClose, onApply, onMakeNode }) {
   };
   const down = (e) => {
     const t = tAt(e);
+    if (e.shiftKey) {
+      if (!sel || t <= sel.start || t >= sel.end) return;
+      setMarks((m) => (m.some((x) => Math.abs(x - t) < dur * 0.01) ? m.filter((x) => Math.abs(x - t) >= dur * 0.01) : [...m, t].sort((a, b) => a - b)));
+      return;
+    }
+    setMarks([]);
     drag.current = { a: t, moved: false };
     const move = (ev) => {
       const t2 = tAt(ev);
@@ -575,13 +583,184 @@ function SampleModal({ sample, onClose, onApply, onMakeNode }) {
         <canvas ref=${cv}></canvas>
         ${sample.segments.map((sg, i) => html`<div class="segb" key=${i} style=${{ left: (sg.start / dur) * 100 + '%', width: ((sg.end - sg.start) / dur) * 100 + '%' }}></div>`)}
         ${sel && html`<div class="picked" style=${{ left: (sel.start / dur) * 100 + '%', width: Math.max(0.3, ((sel.end - sel.start) / dur) * 100) + '%' }}></div>`}
+        ${marks.map((m) => html`<div key=${m} style=${{ position: 'absolute', top: 0, bottom: 0, width: '2px', background: '#ff5c8a', left: (m / dur) * 100 + '%', pointerEvents: 'none' }}></div>`)}
       </div>
+      <div class="hint">"잘라서 노드로 만들기"는 소리의 음높이가 바뀌는 곳마다 자동으로 나눠 음을 하나씩 만들어요. 직접 나누려면 구간 안을 Shift+클릭해 나눔 표시를 넣으세요 (다시 Shift+클릭하면 지워져요).</div>
       <div class="hint">${sel ? `선택: ${sel.start.toFixed(2)} ~ ${sel.end.toFixed(2)}초 (${(sel.end - sel.start).toFixed(2)}초)` : '구간을 골라 주세요'}</div>
       <div style=${{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
         <button class="btn" onClick=${preview} disabled=${!sel}>미리 듣기</button>
         <button class="btn ghost" onClick=${onClose}>취소</button>
         <button class="btn" disabled=${!sel || sel.end - sel.start < 0.05} onClick=${() => onApply(sel)}>이 구간 사용</button>
-        <button class="btn primary" disabled=${!sel || sel.end - sel.start < 0.05} onClick=${() => onMakeNode(sel)}>잘라서 노드로 만들기</button>
+        <button class="btn primary" disabled=${!sel || sel.end - sel.start < 0.05} onClick=${() => onMakeNode(sel, marks)}>잘라서 노드로 만들기</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ------------------------------------------------------------------ pitch curve editor
+// The whole cut is drawn as its pitch curve. Grab the curve and pull: that makes a point that remembers how far it was pulled
+// (a bump of that height around it). A point can be grabbed again, moved or removed; a point pulled back onto the original
+// line disappears, so the original is always one drag away. The curve is the original plus the sum of the bumps.
+function PitchModal({ sample, bpm, onClose, onApply }) {
+  const W = 640, H = 300, L = 46, RG = 16, T = 20, B = 64, PH = H - T - B;
+  const [C, setC] = useState(null);
+  const [err, setErr] = useState('');
+  const [anchors, setAnchors] = useState(() => (sample.bend || []).map((a) => ({ t: a.t, a: a.a, s: a.s, w: a.w || 10 })));
+  const [sel, setSel] = useState(-1);
+  const [defW, setDefW] = useState(10);
+  const [hx, setHx] = useState(false);
+  const [rng, setRng] = useState(0);   // 0 = scale follows the curve; 12 / 24 = fixed scale (up to two octaves)
+  const [busy, setBusy] = useState('');
+  const [lr, setLr] = useState(null);   // the range to listen to (seconds from the start of the cut), chosen by dragging along the bottom strip
+  const [ph, setPh] = useState(null);   // playing position while listening
+  const drag = useRef(null), hist = useRef([]), box = useRef(null), aud = useRef(null), tm = useRef(null);
+  const spec = { file: sample.file, start: sample.sel.start, end: sample.sel.end };
+  useEffect(() => {
+    let dead = false;
+    api('/api/sample-contour', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) })
+      .then((r) => r.json()).then((c) => { if (!dead) { setC(c); if (!(sample.bend && sample.bend.length)) setDefW(Math.max(10, Math.min(100, Math.round((0.06 * 2.2 * 100) / c.dur)))); } }).catch((e) => { if (!dead) setErr(e.message); });
+    return () => { dead = true; if (tm.current) { clearTimeout(tm.current.t); clearInterval(tm.current.i); } if (aud.current) aud.current.pause(); };
+  }, []);
+  const stopAud = () => { if (tm.current) { clearTimeout(tm.current.t); clearInterval(tm.current.i); tm.current = null; } if (aud.current) { aud.current.pause(); aud.current = null; } setBusy(''); setPh(null); };
+  if (err) return html`<div class="modal-bg" onMouseDown=${(e) => { if (e.target === e.currentTarget) onClose(); }}><div class="modal" role="dialog"><b>음높이 곡선</b><div class="hint">${err}</div><div style=${{ display: 'flex', justifyContent: 'flex-end' }}><button class="btn" onClick=${onClose}>닫기</button></div></div></div>`;
+  if (!C) return html`<div class="modal-bg"><div class="modal" role="dialog"><b>음높이 곡선</b><div class="hint">음높이를 분석하는 중이에요…</div></div></div>`;
+  const M = C.midi.length, step = C.dur / (M - 1), root = C.root;
+  const rel = C.midi.map((m) => (m == null ? null : m - root));
+  const RN = rng || Math.max(6, Math.min(12, Math.ceil(Math.max(...rel.filter((x) => x != null).map((x) => Math.abs(x)), 0)) + 3));
+  const gx = (i) => L + (i / (M - 1)) * (W - L - RG), gy = (s) => T + ((RN - s) / (2 * RN)) * PH, inv = (py) => RN - ((py - T) / PH) * 2 * RN;
+  const sigOf = (w) => ((w / 100) * C.dur) / 2.2;
+  const bump = (a, t) => a.a * Math.exp(-0.5 * Math.pow((t - a.t) / a.s, 2));
+  const offAt = (as, i, skip) => as.reduce((sum, a, k) => (k === skip ? sum : sum + bump(a, i * step)), 0);
+  const res = rel.map((r, i) => (r == null ? null : r + offAt(anchors, i, -1)));
+  const nearV = (i) => { if (rel[i] != null) return i; for (let d = 1; d < M; d++) { if (i - d >= 0 && rel[i - d] != null) return i - d; if (i + d < M && rel[i + d] != null) return i + d; } return i; };
+  const pos = (e) => { const r = box.current.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H }; };
+  const tAt = (px) => Math.max(0, Math.min(C.dur, ((px - L) / (W - L - RG)) * C.dur));
+  const idxAt = (px) => Math.max(0, Math.min(M - 1, Math.round(((px - L) / (W - L - RG)) * (M - 1))));
+  const pushHist = () => { hist.current.push(JSON.stringify(anchors)); if (hist.current.length > 40) hist.current.shift(); };
+  const down = (e) => {
+    const tg = e.target, p = pos(e);
+    if (p.y >= H - B + 2 && !(tg.dataset && (tg.dataset.a !== undefined || tg.dataset.hit))) {   // bottom strip: choose what to listen to
+      const t0 = tAt(p.x);
+      drag.current = { range: true, t0 };
+      setLr({ a: t0, b: t0 });
+    } else if (tg.dataset && tg.dataset.a !== undefined) {
+      const k = Number(tg.dataset.a);
+      pushHist(); setSel(k); setDefW(anchors[k].w);
+      drag.current = { k, x0: p.x, i0: Math.round(anchors[k].t / step), hx: e.shiftKey || hx };
+    } else if (tg.dataset && tg.dataset.hit) {
+      const i = nearV(idxAt(p.x));
+      pushHist();
+      setAnchors((as) => [...as, { t: i * step, a: 0, s: sigOf(defW), w: defW }]);
+      setSel(anchors.length);
+      drag.current = { k: anchors.length, x0: p.x, i0: i, hx: false };
+    } else { setSel(-1); return; }
+    box.current.setPointerCapture(e.pointerId); e.preventDefault();
+  };
+  const move = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const p = pos(e);
+    if (d.range) { const t1 = tAt(p.x); setLr({ a: Math.min(d.t0, t1), b: Math.max(d.t0, t1) }); return; }
+    setAnchors((as) => as.map((a, k) => {
+      if (k !== d.k) return a;
+      const ni = d.hx ? nearV(idxAt(gx(d.i0) + (p.x - d.x0))) : Math.round(a.t / step);
+      let target = Math.max(-24, Math.min(24, inv(p.y) - rel[ni]));
+      if (Math.abs(target) < 0.3) target = 0;
+      return { ...a, t: ni * step, a: target - offAt(as, ni, k) };
+    }));
+  };
+  const up = () => {
+    if (!drag.current) return;
+    if (drag.current.range) { drag.current = null; setLr((r) => (r && r.b - r.a >= 0.03 ? r : null)); return; }
+    drag.current = null;
+    setAnchors((as) => as.filter((a) => Math.abs(a.a) >= 0.05));
+    setSel((k) => (k >= 0 && anchors[k] && Math.abs(anchors[k].a) < 0.05 ? -1 : k));
+  };
+  const setW = (v) => {
+    setDefW(v);
+    if (sel >= 0 && anchors[sel]) setAnchors((as) => as.map((a, k) => (k === sel ? { ...a, w: v, s: sigOf(v) } : a)));
+  };
+  const wheel = (e) => { e.preventDefault(); setW(Math.max(2, Math.min(100, (sel >= 0 && anchors[sel] ? anchors[sel].w : defW) + (e.deltaY < 0 ? 2 : -2)))); };
+  const clean = (as) => as.map((a) => ({ t: Number(a.t.toFixed(4)), a: Number(a.a.toFixed(3)), s: Number(a.s.toFixed(4)), w: a.w }));
+  const delSel = () => { if (sel >= 0) { pushHist(); setAnchors((as) => as.filter((_, k) => k !== sel)); setSel(-1); } };
+  const resetAll = () => { if (anchors.length) pushHist(); setAnchors([]); setSel(-1); };
+  const undo = () => { if (hist.current.length) { setAnchors(JSON.parse(hist.current.pop())); setSel(-1); } };
+  const listen = async (edited) => {
+    stopAud();
+    const beats = r6((C.dur * bpm) / 60);
+    const sp = { ...spec, ...(edited && anchors.length ? { bend: clean(anchors).map((a) => ({ t: a.t, a: a.a, s: a.s })) } : {}) };
+    const payload = { bpm, target: 'all', master: {}, lines: [{ id: 'L1', sample: sp, fit: 'stretch', nodes: [{ s: 0, l: beats, notes: [{ s: 0, l: beats, p: Math.round(sample.sel.root != null ? sample.sel.root : C.root) }], fit: null, sample: null }] }] };
+    setBusy(edited ? 'edit' : 'orig');
+    try {
+      const blob = await (await api('/api/render', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).blob();
+      const a = new Audio(URL.createObjectURL(blob));
+      a.onended = () => stopAud();
+      aud.current = a;
+      await new Promise((res) => { if (a.readyState >= 1) res(); else a.addEventListener('loadedmetadata', res, { once: true }); });
+      if (lr) a.currentTime = lr.a;
+      await a.play();
+      tm.current = { i: setInterval(() => { if (aud.current === a) setPh(a.currentTime); }, 40), t: lr ? setTimeout(stopAud, (lr.b - lr.a) * 1000 + 30) : null };
+    } catch (ex) { setBusy(''); }
+  };
+  const path = (vals) => { let d = '', on = false; vals.forEach((v, i) => { if (v == null) { on = false; return; } d += (on ? 'L' : 'M') + gx(i).toFixed(1) + ',' + gy(v).toFixed(1) + ' '; on = true; }); return d; };
+  const dPath = path(res);
+  const grid = []; for (let s = -RN; s <= RN; s += 3) grid.push(s);
+  const mx = anchors.length ? anchors.reduce((a, b) => (Math.abs(b.a) > Math.abs(a) ? b.a : a), 0) : 0;
+  const cur = sel >= 0 ? anchors[sel] : null;
+  const curI = cur ? Math.round(cur.t / step) : -1;
+  return html`<div class="modal-bg" onMouseDown=${(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div class="modal" role="dialog" aria-label="음높이 곡선 편집" style=${{ width: 'min(720px, 96vw)' }}>
+      <div style=${{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <b style=${{ fontSize: '15px' }}>${`음높이 곡선 · ${sample.label || sample.file}`}</b>
+        <span class="hint">${`${C.dur.toFixed(2)}초`}</span>
+      </div>
+      <div class="hint">파란 곡선을 잡고 위아래로 끌면 그 자리에 점이 생기고 곡선이 따라와요. 점을 다시 잡으면 그 점만 움직여요. 점을 주황 점선(원본)까지 끌어 놓으면 사라져요. 점을 더블클릭해도 지워져요.</div>
+      <div style=${{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <span class="hint">${cur ? '선택한 점의 범위' : '새 점의 범위'}</span>
+        <input type="range" min="2" max="100" step="1" value=${cur ? cur.w : defW} style=${{ width: '180px' }} aria-label="잡아당기는 범위" onInput=${(e) => setW(Number(e.target.value))} />
+        <span class="hint">${`${cur ? cur.w : defW}% (±${((((cur ? cur.w : defW) / 100) * C.dur) / 2.2).toFixed(2)}초)`}</span>
+        <label class="hint" style=${{ display: 'flex', alignItems: 'center', gap: '4px' }}><input type="checkbox" checked=${hx} onChange=${(e) => setHx(e.target.checked)} /> 좌우로도 옮기기</label>
+        <label class="hint" style=${{ display: 'flex', alignItems: 'center', gap: '4px' }}>눈금
+          <select class="in" style=${{ width: '120px', padding: '2px 4px', fontSize: '12px' }} aria-label="세로 눈금 범위" value=${String(rng)} onChange=${(e) => setRng(Number(e.target.value))}>
+            <option value="0">자동</option><option value="12">±12반음 (1옥타브)</option><option value="24">±24반음 (2옥타브)</option>
+          </select></label>
+      </div>
+      <svg ref=${box} viewBox=${`0 0 ${W} ${H}`} style=${{ width: '100%', display: 'block', touchAction: 'none', background: 'var(--panel2, rgba(128,128,128,.08))', borderRadius: '10px', userSelect: 'none' }}
+        onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerCancel=${up} onWheel=${wheel}>
+        ${grid.map((s) => html`<g key=${s}><line x1=${L} x2=${W - RG} y1=${gy(s)} y2=${gy(s)} stroke="currentColor" stroke-opacity=${s === 0 ? 0.35 : 0.12} stroke-width=${s === 0 ? 1 : 0.5} /><text x=${L - 8} y=${gy(s) + 4} text-anchor="end" font-size="11" fill="currentColor" fill-opacity="0.55">${(s > 0 ? '+' : '') + s}</text></g>`)}
+        ${C.env.map((v, i) => (i % 2 === 0 && rel[i] != null ? html`<rect key=${i} x=${gx(i)} y=${H - B + 34 - v * 17} width="2.2" height=${Math.max(1, v * 34)} rx="1" fill="currentColor" fill-opacity="0.4" />` : null))}
+        <rect x=${L} y=${H - B + 4} width=${W - L - RG} height=${B - 22} fill="transparent" style=${{ cursor: 'col-resize' }} />
+        ${lr && html`<g><rect x=${gx((lr.a / C.dur) * (M - 1))} y=${T} width=${Math.max(1, gx((lr.b / C.dur) * (M - 1)) - gx((lr.a / C.dur) * (M - 1)))} height=${H - B + 38 - T} fill="#378ADD" fill-opacity="0.14" /><text x=${(gx((lr.a / C.dur) * (M - 1)) + gx((lr.b / C.dur) * (M - 1))) / 2} y=${H - B + 52} text-anchor="middle" font-size="11" fill="#378ADD">${`듣는 구간 ${lr.a.toFixed(2)}~${lr.b.toFixed(2)}초`}</text></g>`}
+        ${ph != null && html`<line x1=${gx((ph / C.dur) * (M - 1))} x2=${gx((ph / C.dur) * (M - 1))} y1=${T} y2=${H - B + 38} stroke="#378ADD" stroke-width="1.5" />`}
+        <text x=${L} y=${H - 6} font-size="11" fill="currentColor" fill-opacity="0.55">0초</text>
+        <text x=${W - RG} y=${H - 6} text-anchor="end" font-size="11" fill="currentColor" fill-opacity="0.55">${`${C.dur.toFixed(2)}초`}</text>
+        <path d=${path(rel)} fill="none" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.8" />
+        ${cur && html`<polyline fill="none" stroke="#378ADD" stroke-width="1" opacity="0.45" points=${Array.from({ length: M }, (_, i) => `${gx(i).toFixed(1)},${gy(-RN + 0.5 + 1.6 * Math.exp(-0.5 * Math.pow((i * step - cur.t) / cur.s, 2))).toFixed(1)}`).join(' ')} />`}
+        <path d=${dPath} fill="none" stroke="#378ADD" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        <path d=${dPath} fill="none" stroke="transparent" stroke-width="30" data-hit="1" style=${{ cursor: 'grab' }} />
+        ${anchors.map((a, k) => { const i = Math.round(a.t / step); const y = res[i] == null ? gy(0) : gy(res[i]); return html`<g key=${k}><line x1=${gx(i)} x2=${gx(i)} y1=${rel[i] == null ? y : gy(rel[i])} y2=${y} stroke="#378ADD" stroke-dasharray="2 3" opacity="0.6" /><circle cx=${gx(i)} cy=${y} r=${k === sel ? 9 : 7} data-a=${k} fill=${k === sel ? '#378ADD' : 'var(--panel, #fff)'} stroke="#378ADD" stroke-width="2.5" style=${{ cursor: 'grab' }} onDblClick=${() => { pushHist(); setAnchors((as) => as.filter((_, q) => q !== k)); setSel(-1); }} /></g>`; })}
+        <text x=${L + 4} y=${T - 6} font-size="11" fill="#D85A30">점선: 원본 음높이</text>
+        <text x=${L + 112} y=${T - 6} font-size="11" fill="#378ADD">파란 곡선: 지금 설정 · 동그라미: 고친 점</text>
+      </svg>
+      <div style=${{ display: 'flex', alignItems: 'baseline', gap: '14px', flexWrap: 'wrap' }}>
+        <b style=${{ fontSize: '16px' }}>${anchors.length ? `고친 점 ${anchors.length}개` : '수정 없음'}</b>
+        <span class="hint">${anchors.length ? `최대 ${mx > 0 ? '+' : ''}${(Math.round(mx * 10) / 10).toFixed(1)} 반음 · 점 바깥은 원본 소리 그대로 재생돼요` : '원본 그대로 재생돼요 (보정 없음)'}</span>
+      </div>
+      <div class="hint">아래 소리 모양 줄을 좌우로 끌면 듣는 구간을 정해요. 구간을 정하면 듣기 버튼이 그 부분만 들려 줘요 (한 번 누르면 해제).</div>
+      <div class="hint" style=${{ minHeight: '18px' }}>${cur && res[curI] != null ? `선택한 점: ${(cur.t).toFixed(2)}초 · ${(res[curI] - rel[curI] > 0 ? '+' : '') + (Math.round((res[curI] - rel[curI]) * 10) / 10).toFixed(1)} 반음 · 범위 ${cur.w}%` : ''}</div>
+      <div style=${{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div style=${{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <button class="btn" disabled=${sel < 0} onClick=${delSel}>선택한 점 지우기</button>
+          <button class="btn" onClick=${undo}>한 단계 취소</button>
+          <button class="btn" onClick=${resetAll}>전부 원본으로</button>
+          <button class="btn" disabled=${!lr} onClick=${() => { stopAud(); setLr(null); }}>듣는 구간 해제</button>
+          <button class="btn" onClick=${() => (busy === 'orig' ? stopAud() : listen(false))}>${busy === 'orig' ? '■ 멈추기' : (lr ? '▶ 구간 원본 듣기' : '▶ 원본 듣기')}</button>
+          <button class="btn" onClick=${() => (busy === 'edit' ? stopAud() : listen(true))}>${busy === 'edit' ? '■ 멈추기' : (lr ? '▶ 구간 수정 듣기' : '▶ 수정 듣기')}</button>
+        </div>
+        <div style=${{ display: 'flex', gap: '6px' }}>
+          <button class="btn ghost" onClick=${() => { stopAud(); onClose(); }}>취소</button>
+          <button class="btn primary" onClick=${() => { stopAud(); onApply(clean(anchors)); }}>적용</button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1336,7 +1515,7 @@ function App() {
         const seg = a.segments[a.default];
         const id = uid('s');
         upd((p) => {
-          p.samples = p.samples.filter((s) => s.file !== a.file);
+          p.samples = p.samples.filter((s) => s.piece || s.file !== a.file);
           p.samples.push({ id, file: a.file, duration: a.duration, segments: a.segments, peaks: a.peaks, sel: { start: seg.start, end: seg.end, root: seg.root } });
           p.lines.forEach((L) => { if (!L.sampleId) L.sampleId = id; });
         });
@@ -1346,19 +1525,47 @@ function App() {
   };
   // A sample piece turned into a node goes to the node library: one note at the sample's own pitch (so it plays
   // unchanged), as long as the piece itself (rounded up to the grid). Drag it from the library onto a line afterwards.
-  const makeSampleLibNode = (s, sel, root) => {
+  const makeSampleLibNode = (s, sel, root, parts) => {
     const beats = Math.max(grid, r6(Math.ceil((((sel.end - sel.start) * P.bpm) / 60) / grid - EPS) * grid));
     const base = s.file.replace(/\.[^.]+$/, '');
-    const note = { s: 0, l: beats, p: root != null ? Math.round(root) : 57 };
-    upd((p) => { p.lib.push({ id: uid('d'), name: base + ' ' + fmt(sel.start) + '~' + fmt(sel.end) + '초', l: beats, notes: [note], sampleId: s.id }); });
+    // positions and lengths are the recorded ones (not rounded to the grid), so the sound keeps its own timing and plays as recorded
+    const bt = (sec) => r6((sec * P.bpm) / 60);
+    let notes = [{ s: 0, l: Math.max(0.0625, bt(sel.end - sel.start)), p: root != null ? Math.round(root) : 57 }], total = beats;
+    if (parts && parts.length > 1) {
+      // several pieces: one note each, every note playing its own part of the cut at its own place
+      notes = parts.map((q) => ({ s: bt(q.a - sel.start), l: Math.max(0.0625, bt(q.b - q.a)), p: q.root != null ? Math.round(q.root) : 57, cs: r6(q.a - sel.start), ce: r6(q.b - sel.start) }));
+      total = Math.max(grid, r6(Math.ceil(bt(sel.end - sel.start) / grid - EPS) * grid));
+    }
+    // the node gets a piece of its own (same file, its own cut), so cutting or "use this range" on the sample later cannot change how it sounds
+    const pid = uid('s'), label = base + ' ' + fmt(sel.start) + '~' + fmt(sel.end) + '초';
+    upd((p) => {
+      p.samples.push({ id: pid, piece: true, label, file: s.file, duration: s.duration, segments: s.segments, peaks: s.peaks, sel: { start: sel.start, end: sel.end, root } });
+      p.lib.push({ id: uid('d'), name: label, l: total, notes, sampleId: pid });
+    });
     ui({ notice: "'" + base + "' 조각을 노드로 만들어 노드 모음에 넣었어요 (" + fmt(beats) + '박). 왼쪽 노드 모음에서 라인으로 끌어다 놓으세요' });
   };
-  const applyCut = async (s, sel, makeNode) => {
+  const applyCut = async (s, sel, makeNode, marks) => {
     try {
-      const info = await (await api('/api/sample-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: s.file, start: sel.start, end: sel.end }) })).json();
-      upd((p) => { p.samples.find((x) => x.id === s.id).sel = { start: sel.start, end: sel.end, root: info.root }; });
+      const infoOf = async (a, b) => (await api('/api/sample-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: s.file, start: a, end: b }) })).json();
+      const info = await infoOf(sel.start, sel.end);
+      let parts = null;
+      const cuts = makeNode ? (marks || []).filter((m) => m > sel.start + 0.03 && m < sel.end - 0.03).sort((a, b) => a - b) : [];
+      if (cuts.length) {
+        const bounds = [sel.start, ...cuts, sel.end];
+        parts = [];
+        for (let i = 0; i < bounds.length - 1; i++) { const q = await infoOf(bounds[i], bounds[i + 1]); parts.push({ a: bounds[i], b: bounds[i + 1], root: q.root }); }
+      } else if (makeNode) {
+        // no marks given: follow the sound's own pitch, one note wherever the pitch moves
+        const r = await (await api('/api/sample-split', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file: s.file, start: sel.start, end: sel.end }) })).json();
+        if (r.parts && r.parts.length > 1) {
+          parts = [];
+          // the pitch of every piece is measured the way the player measures it, so an unchanged note plays as recorded
+          for (const q of r.parts) { const m = await infoOf(q.a, q.b); parts.push({ a: q.a, b: q.b, root: m.root }); }
+        }
+      }
+      upd((p) => { const x = p.samples.find((q) => q.id === s.id); x.sel = { start: sel.start, end: sel.end, root: info.root }; delete x.bend; });   // a new range makes the old pitch curve meaningless
       ui({ cutting: null, notice: info.pitched ? '' : '이 조각은 음높이가 없는 소리라 길이만 맞춰져요 (음이 바뀌지 않아요)' });
-      if (makeNode) makeSampleLibNode(s, sel, info.root);
+      if (makeNode) makeSampleLibNode(s, sel, info.root, parts);
     } catch (e) { ui({ cutting: null, notice: e.message }); }
   };
   const addRef = async (file) => {
@@ -1403,7 +1610,7 @@ function App() {
   // ---- playback
   const specOf = (sid) => {
     const s = sampleOf(sid);
-    return s && s.sel ? { file: s.file, start: s.sel.start, end: s.sel.end } : null;
+    return s && s.sel ? { file: s.file, start: s.sel.start, end: s.sel.end, ...(s.bend && s.bend.length ? { bend: s.bend.map((a) => ({ t: a.t, a: a.a, s: a.s })) } : {}) } : null;
   };
   const payload = (target) => ({
     bpm: P.bpm, target, master: P.master || {},
@@ -1524,7 +1731,7 @@ function App() {
     const end = Math.max(...ns.map((k) => k.s + k.l));
     const l = Math.max(grid, r6(Math.ceil((end - a0) / grid - EPS) * grid));
     const base = node.refAt != null ? node.refAt : node.src ? node.src.a : null;
-    return { id: uid('d'), name, l, notes: ns.map((k) => ({ s: r6(k.s - a0), l: k.l, p: k.p })), at: base != null ? r6(base + a0) : null, fit: node.fit || null, sampleId: node.sampleId || null };
+    return { id: uid('d'), name, l, notes: ns.map((k) => ({ s: r6(k.s - a0), l: k.l, p: k.p, ...(k.cs != null ? { cs: k.cs, ce: k.ce } : {}) })), at: base != null ? r6(base + a0) : null, fit: node.fit || null, sampleId: node.sampleId || null };
   };
   const saveNotesToLib = () => {
     if (!selIdx.length) return;
@@ -1889,7 +2096,7 @@ function App() {
           <div class="win-h"><b>샘플 (내 소리)</b><span>끌어서 놓기 · 또는 눌러서 들기</span></div>
           <div class="win-b scroll">
             ${P.samples.length === 0 && html`<div class="hint" style=${{ padding: '4px' }}>아래 버튼으로 소리 파일을 추가하세요. 파일 이름이 그대로 표시돼요.</div>`}
-            ${P.samples.map((s) => {
+            ${P.samples.filter((s) => !s.piece).map((s) => {
               const on = U.armed === s.id;
               return html`<div class=${'srow' + (on ? ' armed' : '')} key=${s.id}>
                 <button class="main-btn" draggable="true" aria-label=${s.file + (on ? ' 내려놓기' : ' 들기')}
@@ -2074,8 +2281,14 @@ function App() {
           <div class="kv"><span>소리</span>
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="노드 소리" value=${node.sampleId || ''} onChange=${(e) => editNode((nd) => { nd.sampleId = e.target.value || null; })}>
               <option value="">${`라인 기본 (${(sampleOf(line.sampleId) || {}).file || '없음'})`}</option>
-              ${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.file}</option>`)}
+              ${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.label || s.file}</option>`)}
             </select></div>
+          ${(() => {
+            const bs = sampleOf(node.sampleId || line.sampleId);
+            if (!bs || !bs.sel) return null;
+            return html`<div class="kv"><span>음높이 곡선</span>
+              <button class="tbtn" aria-label="음높이 곡선 편집" title="소리의 음높이 흐름을 마우스로 잡아당겨 고쳐요" onClick=${() => ui({ pitchEdit: bs.id })}>${bs.bend && bs.bend.length ? `고치는 중 · 점 ${bs.bend.length}개` : '곡선 편집'}</button></div>`;
+          })()}
           <div class="kv"><span>길이 맞추기</span>
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="긴 음을 소리로 채우는 방법" title="늘리기: 샘플 하나를 음 길이만큼 늘려요 · 반복하기: 음이 샘플보다 훨씬 길면 샘플을 되풀이해요" value=${node.fit || ''} onChange=${(e) => editNode((nd) => { if (e.target.value) nd.fit = e.target.value; else delete nd.fit; })}>
               <option value="">${`라인 설정 따르기 (${line.fit === 'repeat' ? '반복하기' : '늘리기'})`}</option>
@@ -2129,7 +2342,7 @@ function App() {
           <div class="kv"><span>기본 소리</span>
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="라인 기본 소리" value=${line.sampleId || ''} onChange=${(e) => upd((p) => { p.lines.find((x) => x.id === line.id).sampleId = e.target.value || null; })}>
               <option value="">없음</option>
-              ${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.file}</option>`)}
+              ${P.samples.map((s) => html`<option value=${s.id} key=${s.id}>${s.label || s.file}</option>`)}
             </select></div>
           <div class="kv"><span>길이 맞추기</span>
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="이 라인의 긴 음 채우는 방법" title="노드마다 따로 정하지 않으면 이 방법을 써요" value=${line.fit || 'stretch'} onChange=${(e) => upd((p) => { p.lines.find((x) => x.id === line.id).fit = e.target.value; })}>
@@ -2144,7 +2357,8 @@ function App() {
     ${U.entryEdit && html`<${EntryEditor} P=${P} entryId=${U.entryEdit} grid=${grid} upd=${upd} ui=${ui} sampleOf=${sampleOf} specOf=${specOf} defaultSampleId=${(line && line.sampleId) || (P.samples[0] ? P.samples[0].id : null)} onClose=${() => { Ctl.el.pause(); ui({ entryEdit: null }); }} />`}
     ${U.helpOpen && html`<${HelpModal} onClose=${() => ui({ helpOpen: false })} />`}
     ${U.planOpen && html`<${PlanModal} plan=${plan} notice=${U.notice} onClose=${() => ui({ planOpen: false, notice: '' })} onChange=${setPlan} />`}
-    ${U.cutting && sampleOf(U.cutting) && html`<${SampleModal} sample=${sampleOf(U.cutting)} onClose=${() => { Prev.pause(); ui({ cutting: null }); }} onApply=${(sel) => applyCut(sampleOf(U.cutting), sel)} onMakeNode=${(sel) => applyCut(sampleOf(U.cutting), sel, true)} />`}
+    ${U.pitchEdit && sampleOf(U.pitchEdit) && html`<${PitchModal} sample=${sampleOf(U.pitchEdit)} bpm=${P.bpm} onClose=${() => ui({ pitchEdit: null })} onApply=${(as) => { const id = U.pitchEdit; upd((p) => { const s = p.samples.find((x) => x.id === id); if (as.length) s.bend = as; else delete s.bend; }); ui({ pitchEdit: null, notice: as.length ? '음높이 곡선을 적용했어요. 이 소리를 쓰는 모든 노드에 반영돼요' : '음높이 곡선을 원본으로 되돌렸어요' }); }} />`}
+    ${U.cutting && sampleOf(U.cutting) && html`<${SampleModal} sample=${sampleOf(U.cutting)} onClose=${() => { Prev.pause(); ui({ cutting: null }); }} onApply=${(sel) => applyCut(sampleOf(U.cutting), sel)} onMakeNode=${(sel, marks) => applyCut(sampleOf(U.cutting), sel, true, marks)} />`}
   </div>`;
 }
 

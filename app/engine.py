@@ -72,6 +72,7 @@ class Voice:
     (formant-preserving); non-tonal clips are only time-stretched."""
 
     def __init__(self, y):
+        self.raw = np.asarray(y, dtype=np.float32).copy()      # the cut exactly as chosen, kept for playing it as recorded
         y, _ = librosa.effects.trim(y, top_db=35)
         if len(y) < 256:
             raise ValueError("clip is too short")
@@ -170,6 +171,147 @@ def get_voice(spec):
         y = _load(spec["file"])
         _voices[key] = Voice(y[int(key[1] * SR): int(key[2] * SR)])
     return _voices[key]
+
+
+# ---------------------------------------------------------------- pitch curve of a whole cut (drawn and edited in the UI)
+FR = 0.005                    # WORLD frame period, seconds
+_analysis = {}
+
+
+def get_analysis(spec):
+    """WORLD analysis (f0, spectral envelope, aperiodicity) of the whole cut, exactly as chosen (no silence trimming)."""
+    key = (spec["file"], round(float(spec["start"]), 3), round(float(spec["end"]), 3))
+    if key not in _analysis:
+        if len(_analysis) >= 6:
+            _analysis.pop(next(iter(_analysis)))
+        y = _load(spec["file"])[int(key[1] * SR): int(key[2] * SR)].astype(np.float64)
+        if len(y) < 512:
+            raise ValueError("구간이 너무 짧아요")
+        f0, t = pw.harvest(y, SR, f0_floor=60.0, f0_ceil=1000.0, frame_period=FR * 1000)
+        _analysis[key] = {"y": y.astype(np.float32), "f0": f0, "sp": pw.cheaptrick(y, f0, t, SR), "ap": pw.d4c(y, f0, t, SR)}
+    return _analysis[key]
+
+
+def contour(spec, points=320):
+    """Pitch curve of the cut for the editor: [{midi|None}] on an even grid, plus loudness and the median pitch."""
+    from scipy.signal import medfilt
+    an = get_analysis(spec)
+    f0 = an["f0"]
+    n = len(f0)
+    voiced = f0 > 0
+    midi = np.zeros(n)
+    midi[voiced] = librosa.hz_to_midi(f0[voiced])
+    midi = np.where(voiced, medfilt(midi, 5), 0.0)
+    root = float(np.median(midi[voiced])) if voiced.any() else None
+    m = min(points, n)
+    idx = np.linspace(0, n - 1, m).round().astype(int)
+    y = an["y"]
+    hop = max(1, len(y) // m)
+    env = [float(np.sqrt(np.mean(y[i * hop:(i + 1) * hop] ** 2) + 1e-12)) for i in range(m)]
+    mx = max(env) or 1.0
+    return {"dur": len(y) / SR, "root": root, "midi": [round(float(midi[i]), 3) if voiced[i] else None for i in idx],
+            "env": [round(e / mx, 3) for e in env]}
+
+
+def _bend_offsets(bend, times):
+    """Semitones to add at each time (seconds from the start of the cut): the sum of the bumps the user pulled."""
+    off = np.zeros(len(times))
+    for a in bend or []:
+        s = max(1e-3, float(a.get("s") or 0.05))
+        off += float(a.get("a") or 0.0) * np.exp(-0.5 * ((times - float(a["t"])) / s) ** 2)
+    return off
+
+
+def _smooth01(x):
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3 - 2 * x)
+
+
+def bend_note(spec, k, dur, p_delta):
+    """One note of a cut whose pitch curve was edited. The original pitch movement is kept and the pulled amount is added;
+    where nothing was pulled the recording itself is used, so only the changed parts are re-synthesized."""
+    an = get_analysis(spec)
+    cs = float(k.get("cs") or 0.0)
+    ce = float(k["ce"]) if k.get("ce") is not None else len(an["y"]) / SR
+    a, b = max(0, int(round(cs / FR))), min(len(an["f0"]), int(round(ce / FR)))
+    n = b - a
+    if n < 4 or not (an["f0"][a:b] > 0).any():
+        return None
+    f0, sp, ap = an["f0"][a:b], an["sp"][a:b], an["ap"][a:b]
+    off = _bend_offsets(spec.get("bend"), (np.arange(n) + a) * FR) + p_delta
+    n_out = max(2, int(round(dur / FR)))
+    voiced = f0 > 0
+    if abs(n_out - n) <= 2:
+        n_out = n
+        f_o, sp_o, ap_o, off_o, vo = f0, sp, ap, off, voiced
+    else:                                   # the note was made longer or shorter than the recording: the frames are stretched evenly
+        from scipy.interpolate import interp1d
+        src = np.linspace(0, n - 1, n_out)
+        idx = np.arange(n)
+        vi = np.where(voiced)[0]
+        f_o = np.interp(src, vi, f0[vi])
+        vo = voiced[np.round(src).astype(int)]
+        off_o = np.interp(src, idx, off)
+        sp_o = interp1d(idx, sp, axis=0)(src)
+        ap_o = interp1d(idx, ap, axis=0)(src)
+    f_new = np.where(vo, np.clip(f_o * 2.0 ** (off_o / 12.0), 40.0, 3000.0), 0.0)
+    syn = pw.synthesize(np.ascontiguousarray(f_new), np.ascontiguousarray(sp_o), np.ascontiguousarray(ap_o), SR, FR * 1000).astype(np.float32)
+    want = int(dur * SR)
+    syn = syn[:want] if len(syn) >= want else np.pad(syn, (0, want - len(syn)))
+    if n_out == n:                          # same length: keep the recording wherever the pitch was not moved
+        raw = an["y"][int(cs * SR): int(cs * SR) + want]
+        raw = np.pad(raw, (0, want - len(raw)))
+        m = np.where(vo, _smooth01(np.abs(off_o) / 0.35), 0.0)
+        mt = np.interp(np.arange(want) / SR / FR, np.arange(len(m)), m)
+        return raw * (1 - mt) + syn * mt
+    return syn
+
+
+def split_by_pitch(spec, step=0.8, min_len=0.07):
+    """Cut a clip into pieces wherever its pitch moves by more than ~`step` semitones or the voice drops out.
+    Returns [{a, b, root}] in absolute seconds; the pieces cover the whole clip. root is None for pieces without a pitch."""
+    from scipy.signal import medfilt
+    a0, b0 = float(spec["start"]), float(spec["end"])
+    y = _load(spec["file"])[int(a0 * SR): int(b0 * SR)].astype(np.float64)
+    whole = [{"a": a0, "b": b0, "root": None}]
+    if len(y) < int(0.15 * SR):
+        return whole
+    f0, t = pw.harvest(y, SR, f0_floor=60.0, f0_ceil=1000.0, frame_period=5.0)
+    n = len(f0)
+    voiced = f0 > 0
+    if voiced.sum() < 8:
+        return whole
+    midi = np.zeros(n)
+    midi[voiced] = librosa.hz_to_midi(f0[voiced])
+    midi = np.where(voiced, medfilt(midi, 5), 0.0)
+    segs, cur, last_v = [], None, -1
+    for i in range(n):
+        if not voiced[i]:
+            continue
+        if cur is not None:
+            gap = i - last_v - 1
+            run = np.median(midi[cur[0]: last_v + 1][-8:])
+            if gap >= 8 or abs(midi[i] - run) > step:
+                # a real change must hold for a few frames (not a glitch), otherwise it stays in the same piece
+                ahead = midi[i: i + 4]
+                if gap >= 8 or (np.all(ahead > 0) and np.all(np.abs(ahead - run) > step)):
+                    segs.append(cur); cur = None
+        if cur is None:
+            cur = [i, i]
+        cur[1] = i
+        last_v = i
+    if cur is not None:
+        segs.append(cur)
+    segs = [s for s in segs if (s[1] - s[0] + 1) * 0.005 >= min_len] or segs
+    if len(segs) < 2:
+        return whole
+    out = []
+    for k, (s, e) in enumerate(segs):
+        lo = 0.0 if k == 0 else (segs[k - 1][1] + s) / 2 * 0.005       # boundary halfway through the gap between two pieces
+        hi = len(y) / SR if k == len(segs) - 1 else (e + segs[k + 1][0]) / 2 * 0.005
+        root = float(np.median(midi[s: e + 1][midi[s: e + 1] > 0]))
+        out.append({"a": round(a0 + lo, 4), "b": round(a0 + hi, 4), "root": root})
+    return out
 
 
 def voice_info(spec):
@@ -276,11 +418,46 @@ def render(payload):
                 continue
             v = get_voice(spec)
             fit = nd.get("fit") or L.get("fit") or "stretch"
+            v0 = v
             for k in nd["notes"]:
+                # a note may carry its own piece of the cut ("cs"/"ce" = seconds inside the cut), so one cut can hold several syllables
+                v = v0
+                if k.get("cs") is not None and k.get("ce") is not None:
+                    try:
+                        v = get_voice({"file": spec["file"], "start": float(spec["start"]) + float(k["cs"]), "end": float(spec["start"]) + float(k["ce"])})
+                    except ValueError:
+                        v = v0
                 dur = max(0.05, float(k["l"]) * spb)
+                if spec.get("bend"):
+                    try:
+                        seg = bend_note(spec, k, dur, (int(k["p"]) - int(round(v.root))) if v.pitched else 0)
+                    except Exception:  # noqa: BLE001
+                        seg = None
+                    if seg is not None:
+                        seg = seg.copy()
+                        f = min(fade, len(seg) // 2)
+                        if f:
+                            seg[:f] *= np.linspace(0, 1, f)
+                            seg[-f:] *= np.linspace(1, 0, f)
+                        events.append((int((float(nd["s"]) + float(k["s"])) * spb * SR), seg))
+                        continue
                 # "repeat": a note much longer than the clip plays the clip again and again instead of stretching it
                 nat = len(v.y) / SR
-                n_rep = max(1, int(round(dur / nat))) if fit == "repeat" and dur >= 1.5 * nat else 1
+                # a node still at the clip's own pitch and about its own length plays the cut-out sound exactly as recorded
+                # (no re-synthesis, no stretching); a note longer than the clip only gets silence after it
+                same_pitch = (not v.pitched) or int(k["p"]) == int(round(v.root))
+                rnat = len(v.raw) / SR
+                if same_pitch and 0.9 * rnat <= dur <= rnat + spb:
+                    want = int(dur * SR)
+                    seg = v.raw[:want].copy()
+                    seg = np.pad(seg, (0, want - len(seg)))
+                    f = min(fade, len(seg) // 2)
+                    if f:
+                        seg[:f] *= np.linspace(0, 1, f)
+                        seg[-f:] *= np.linspace(1, 0, f)
+                    events.append((int((float(nd["s"]) + float(k["s"])) * spb * SR), seg))
+                    continue
+                n_rep =max(1, int(round(dur / nat))) if fit == "repeat" and dur >= 1.5 * nat else 1
                 sub = dur / n_rep
                 for r in range(n_rep):
                     seg = v.note(int(k["p"]), sub).copy()

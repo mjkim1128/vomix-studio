@@ -38,10 +38,46 @@ PORT = int(os.environ.get("VOMIX_PORT", "8765"))
 URL = "http://127.0.0.1:%d/" % PORT
 
 
-def _alive(port):
+def _info(port):
+    """-> the /api/alive?probe=1 answer of a running Vomix server on `port`, or None"""
     try:
-        with urllib.request.urlopen("http://127.0.0.1:%d/api/alive" % port, timeout=1.5) as r:
-            return b"vomix" in r.read()
+        import json
+        with urllib.request.urlopen("http://127.0.0.1:%d/api/alive?probe=1" % port, timeout=1.5) as r:
+            d = json.loads(r.read().decode("utf-8", "replace"))
+            return d if d.get("app") == "vomix" else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _alive(port):
+    return _info(port) is not None
+
+
+def _focus_window(title="Vomix Studio"):
+    """Bring an open Vomix Studio window to the front. -> True when there was one"""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        found = []
+
+        @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        def cb(h, _):
+            if user32.IsWindowVisible(h):
+                n = user32.GetWindowTextLengthW(h)
+                if n:
+                    buf = ctypes.create_unicode_buffer(n + 1)
+                    user32.GetWindowTextW(h, buf, n + 1)
+                    if buf.value == title:
+                        found.append(h)
+            return True
+
+        user32.EnumWindows(cb, 0)
+        if not found:
+            return False
+        user32.ShowWindow(found[0], 9)          # SW_RESTORE
+        user32.SetForegroundWindow(found[0])
+        return True
     except Exception:  # noqa: BLE001
         return False
 
@@ -73,7 +109,11 @@ def _open_window(url):
 
 
 def main():
-    if _alive(PORT):                       # already running: just open another window
+    info = _info(PORT)
+    if info is not None:                   # already running: bring its window forward; open one only when there is none
+        age = info.get("age")
+        if age is not None and age < 12 and _focus_window():
+            return
         _open_window(URL)
         return
     if not _port_free(PORT):

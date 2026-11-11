@@ -71,8 +71,13 @@ LAST_PING = {"t": None}
 
 
 @app.get("/api/alive")
-def alive():
+def alive(probe: int = 0):
+    """The page pings this every few seconds. The launcher asks with probe=1: that does not count as a ping and says how long ago the
+    last real ping was, so a second launch can tell whether a window is open."""
     import time as _t
+    if probe:
+        t = LAST_PING["t"]
+        return {"app": "vomix", "ok": True, "age": None if t is None else round(_t.time() - t, 1)}
     LAST_PING["t"] = _t.time()
     return {"app": "vomix", "ok": True}
 

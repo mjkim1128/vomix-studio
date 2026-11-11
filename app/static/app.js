@@ -232,7 +232,7 @@ const HELP = [
     ['h', '노드 뭉치와 노드'],
     ['ul', ['참조곡 구간을 가져오거나 노드 모음에서 놓으면 라인에 "노드 뭉치"가 생겨요. 뭉치 안에는 음 하나(또는 목소리 한 발음)에 해당하는 "노드"가 여러 칸 들어 있어요.', '뭉치를 선택하면 뭉치 전체(위치, 길이, 전체 음높이)를 조정하고, 라인을 "크게"로 바꾸고 노드를 누르면 그 한 칸만 조정해요.', '노드 하나하나의 음높이, 위치, 길이를 따로 고쳐도 되고, Shift나 Ctrl을 누르고 여러 개를 골라 함께 고칠 수도 있어요.', '고친 노드는 "노드 모음에 저장"으로 따로 저장해 두었다가 다른 곳에 쓸 수 있어요. 뭉치 카드의 "하나씩 모음에 저장"은 뭉치 안의 모든 노드를 각각 저장해요.', '한 번 손으로 고친 뭉치는 뭉치 끝을 줄이거나 늘려도 참조곡에서 음을 다시 가져오지 않고 내가 고친 음을 그대로 둬요.']],
     ['h', '고치기'],
-    ['ul', ['노드 뭉치를 끌어서 옮겨요. 다른 라인으로도 옮길 수 있어요.', '노드를 선택하면 오른쪽에서 이름, 소리, 길이, 음높이(반음, 옥타브)를 바꿔요.', '라인을 "크게" 보기로 바꾸면 음을 하나씩 끌어서 높낮이와 위치를 고칠 수 있어요.', '"이 음 앞에서 노드 쪼개기", "이 음 지우기"도 있어요.', '노드 이름은 선택하거나 마우스를 올렸을 때만 보여요.']],
+    ['ul', ['노드 뭉치를 끌어서 옮겨요. 다른 라인으로도 옮길 수 있어요.', '노드를 선택하면 오른쪽에서 이름, 소리, 길이, 음높이(반음, 옥타브)를 바꿔요.', '라인을 "크게" 보기로 바꾸면 음을 하나씩 끌어서 높낮이와 위치를 고칠 수 있어요.', '"이 음 앞에서 노드 쪼개기", "이 음 지우기"도 있어요.', '노드 이름은 선택하거나 마우스를 올렸을 때만 보여요.', '오른쪽 위의 "노드 뭉치 / 노드" 탭은 지금 무엇을 고치는지 보여 줘요. 노드를 고르면 "노드" 탭이 켜지고, "노드 뭉치" 탭을 누르면 뭉치 전체로 돌아가요.', '뭉치와 노드는 각각 "노드 모음에 저장" 버튼으로 노드 모음에 넣을 수 있어요. 노드 하나는 한 칸짜리 뭉치로 저장돼요.']],
     ['p', '라인 이름은 직접 고쳐요. "+ 라인 추가"로 라인을 늘리고, 라인 이름 옆 ✕(또는 오른쪽 "이 라인 삭제")로 지워요. 라인은 최소 1개가 있어야 해요. 무료 플랜은 3개까지예요.']] },
   { id: 'place', title: '정밀 배치와 기준선', body: [
     ['h', '노드 위치를 정확히'],
@@ -1650,6 +1650,12 @@ function App() {
   };
   const nudgeFine = (d) => setNodeStart(node.s + d);
   const refPos = node ? (node.refAt != null ? node.refAt : node.src ? node.src.a : null) : null;   // where this node came from in the song
+  // the whole selected node bundle -> node library (also the button at the bottom of the library window)
+  const saveBundleToLib = () => {
+    if (!node) return;
+    upd((p) => { p.lib.push({ id: uid('d'), name: node.name, l: node.l, notes: clone(node.notes), at: refPos, fit: node.fit || null, sampleId: node.sampleId || null }); });
+    ui({ notice: "'" + node.name + "' 노드 뭉치를 노드 모음에 저장했어요" });
+  };
 
   // ---- the vertical guide line: click or drag along the beat ruler (Alt = no grid snapping)
   const guideAt = (e, el) => {
@@ -1961,7 +1967,7 @@ function App() {
               </div>`}
             </div>`)}
           </div>
-          ${node && html`<div class="win-f"><button class="dashed" onClick=${() => { upd((p) => { p.lib.push({ id: uid('d'), name: node.name, l: node.l, notes: clone(node.notes), at: refPos, fit: node.fit || null, sampleId: node.sampleId || null }); }); ui({ notice: "'" + node.name + "' 노드를 모음에 저장했어요" }); }}>+ 선택한 노드 뭉치를 모음에 저장</button></div>`}
+          ${node && html`<div class="win-f"><button class="dashed" onClick=${saveBundleToLib}>+ 선택한 노드 뭉치를 모음에 저장</button></div>`}
         </div>
       </div>
 
@@ -2055,9 +2061,14 @@ function App() {
             ${refNoteRun && refNoteRun.list.length > 1 && html`<button class="btn" onClick=${() => saveRefNotes(U.refNote.key, refNoteRun.list)}>${`연속된 같은 음 ${refNoteRun.list.length}개를 노드 모음에 저장`}</button>`}
             <button class="btn ghost" onClick=${() => ui({ refNote: null })}>이 음 선택 해제</button>
           </div>`}
-        <div class="h-label">선택한 노드 뭉치 <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(노드 여러 칸의 묶음)</span></div>
+        ${node && line && html`<div class="selmode" role="group" aria-label="무엇을 고쳐요">
+          <button class=${'tbtn' + (!note ? ' on' : '')} aria-pressed=${!note} title="노드 뭉치 전체를 고쳐요" onClick=${() => ui({ selNote: null, selMore: null })}>노드 뭉치</button>
+          <button class=${'tbtn' + (note ? ' on' : '')} aria-pressed=${!!note} disabled=${!note} title=${note ? '뭉치 안의 선택한 노드를 고쳐요' : "라인을 '크게'로 바꾸고 노드를 누르면 선택돼요"}>노드</button>
+        </div>`}
+        ${!note && html`<div class="h-label">선택한 노드 뭉치 <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(노드 여러 칸의 묶음)</span></div>`}
         ${!node && html`<div class="hint">라인에서 노드 뭉치를 눌러 선택하세요.</div>`}
-        ${node && line && html`<div class="card edit" style=${{ borderColor: line.color }}>
+        ${node && line && note && html`<div class="hint" style=${{ marginBottom: '4px' }}>${`뭉치: ${tx(node.name)}`}</div>`}
+        ${node && line && !note && html`<div class="card edit" style=${{ borderColor: line.color }}>
           <div style=${{ display: 'flex', alignItems: 'center', gap: '8px' }}><span class="pill-tag" style=${{ background: line.color }}>수정 중</span><span class="hint">${`${line.name} 라인`}</span></div>
           <input class="in" style=${{ fontSize: '16px', fontWeight: 700 }} aria-label="노드 이름" value=${tx(node.name)} onInput=${(e) => editNode((nd) => { nd.name = e.target.value; })} />
           <div class="kv"><span>소리</span>
@@ -2085,8 +2096,9 @@ function App() {
           <div class="two"><button class="btn" onClick=${() => trim(-grid)}>${`끝 ${fmt(grid)}박 줄이기`}</button><button class="btn" onClick=${() => trim(grid)}>${`끝 ${fmt(grid)}박 늘리기`}</button></div>
           <div class="two"><button class="btn" onClick=${() => nudge(-1)}>${`${fmt(grid)}박 앞으로`}</button>
             <button class="btn" onClick=${() => nudge(1)}>${`${fmt(grid)}박 뒤로`}</button></div>
-          <button class="btn danger" onClick=${() => { upd((p) => { const L = p.lines.find((x) => x.id === line.id); L.nodes = L.nodes.filter((x) => x.id !== node.id); }); ui({ selNode: null, selNote: null, hoverNode: null }); }}>라인에서 빼기</button>
+          <button class="btn primary" onClick=${saveBundleToLib}>이 뭉치를 노드 모음에 저장</button>
           <button class="btn" onClick=${saveEachNoteToLib}>${`이 뭉치의 노드를 하나씩 모음에 저장 (${node.notes.length}개)`}</button>
+          <button class="btn danger" onClick=${() => { upd((p) => { const L = p.lines.find((x) => x.id === line.id); L.nodes = L.nodes.filter((x) => x.id !== node.id); }); ui({ selNode: null, selNote: null, hoverNode: null }); }}>라인에서 빼기</button>
         </div>`}
         ${note && html`<div class="h-label">${`선택한 노드${selIdx.length > 1 ? ' · ' + selIdx.length + '개' : ''}`} <span style=${{ fontWeight: 400, color: 'var(--dim)' }}>(뭉치 안의 한 칸)</span></div>
           <div class="card">

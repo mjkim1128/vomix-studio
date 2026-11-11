@@ -142,3 +142,7 @@ input[type=range].vfader{writing-mode:vertical-lr;direction:rtl;width:22px;heigh
 .panrow{display:flex;align-items:center;gap:6px}
 
 .mixdot{width:12px!important;height:12px!important;border-radius:50%}
+
+.selmode{display:flex;gap:6px;margin:2px 0 8px}
+.selmode .tbtn{flex:1;height:28px;font-size:12px}
+.tbtn:disabled{opacity:.45;cursor:not-allowed}

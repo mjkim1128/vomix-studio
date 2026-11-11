@@ -463,7 +463,16 @@ export const EXACT = {
 "이 레인 전체를 내 라인의 새 라인으로 복사": "Copy this whole lane to a new line in My Lines",
 "먼저 샘플을 추가해 주세요. 새 라인의 소리로 쓸 샘플이 필요해요": "First add a sample. The new line needs a sample as its sound.",
 ", 멜로디 후보만": ", melody candidates only",
-"참조곡 레인 이름 옆의 ⧉ 버튼을 누르면 그 레인의 음 전체가 내 라인의 새 라인으로 복사돼요. 정밀 분석으로 나눈 베이스 레인을 통째로 가져올 때 좋아요. 여러 음이 섞인 레인은 멜로디 후보만 가져와요.": "The ⧉ button next to a reference lane name copies all notes of that lane to a new line in My Lines. It is handy for taking, say, the bass lane of a precise analysis as a whole. For lanes with mixed notes, only the melody candidates are taken."
+"참조곡 레인 이름 옆의 ⧉ 버튼을 누르면 그 레인의 음 전체가 내 라인의 새 라인으로 복사돼요. 정밀 분석으로 나눈 베이스 레인을 통째로 가져올 때 좋아요. 여러 음이 섞인 레인은 멜로디 후보만 가져와요.": "The ⧉ button next to a reference lane name copies all notes of that lane to a new line in My Lines. It is handy for taking, say, the bass lane of a precise analysis as a whole. For lanes with mixed notes, only the melody candidates are taken.",
+"무엇을 고쳐요": "What to edit",
+"노드 뭉치": "Node bundle",
+"노드": "Node",
+"노드 뭉치 전체를 고쳐요": "Edit the whole node bundle",
+"뭉치 안의 선택한 노드를 고쳐요": "Edit the selected node inside the bundle",
+"라인을 '크게'로 바꾸고 노드를 누르면 선택돼요": "Switch the line to “Large” and click a node to select it",
+"이 뭉치를 노드 모음에 저장": "Save this bundle to the Node Library",
+"오른쪽 위의 \"노드 뭉치 / 노드\" 탭은 지금 무엇을 고치는지 보여 줘요. 노드를 고르면 \"노드\" 탭이 켜지고, \"노드 뭉치\" 탭을 누르면 뭉치 전체로 돌아가요.": "The “Node bundle / Node” tabs at the top right show what you are editing right now. Select a node and the “Node” tab turns on; press the “Node bundle” tab to return to the whole bundle.",
+"뭉치와 노드는 각각 \"노드 모음에 저장\" 버튼으로 노드 모음에 넣을 수 있어요. 노드 하나는 한 칸짜리 뭉치로 저장돼요.": "Bundles and nodes can each be put into the Node Library with their “Save to Node Library” button. A single node is saved as a one-cell bundle."
 };
 export const PATTERNS = [
 [
@@ -969,5 +978,13 @@ export const PATTERNS = [
 [
 "'{a}' 레인을 새 라인으로 복사했어요 (노드 {b}개{c})",
 "Copied lane '{a}' to a new line ({b|node|nodes}{c})"
+],
+[
+"뭉치: {a}",
+"Bundle: {a}"
+],
+[
+"'{a}' 노드 뭉치를 노드 모음에 저장했어요",
+"Saved node bundle '{a}' to the Node Library"
 ]
 ];

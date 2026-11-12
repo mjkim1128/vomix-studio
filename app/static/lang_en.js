@@ -537,7 +537,20 @@ export const EXACT = {
 "늘리기: 샘플 하나를 음 길이만큼 늘려요 · 반복하기: 음이 샘플보다 훨씬 길면 샘플을 되풀이해요 · 원래 속도로: 소리를 늘이지 않고 원래 속도로 흘려보내며 음정만 노드의 음을 따라가요": "Stretch: stretches one sample to the note length · Repeat: if the note is much longer than the sample, the sample repeats · Keep speed: does not stretch the sound, it plays at its own speed and only its pitch follows the notes of the node",
 "\"원래 속도로\": 소리를 늘이거나 줄이지 않고 원래 속도로 재생해요. 예를 들어 5박짜리 소리는 노드의 5박 동안 흘러가면서 그 시간에 있는 음의 높이로 바뀌고, 끝나면 처음부터 다시 이어가요. 음이 없는 곳은 조용해요. 소리 안에 음높이가 없는 부분(자음 등)은 높이가 바뀌지 않아요.": "“Keep speed”: plays the sound at its own speed, without stretching or squeezing it. For example, a 5-beat sound runs through the 5 beats of the node and takes the pitch of the note at each moment, and when it ends it starts again from the beginning. Where there is no note it is quiet. Parts of the sound that have no pitch (consonants and the like) do not change pitch.",
 "(남은 샘플이 없어 소리가 없어져요)": "(No samples are left, so they will have no sound)",
-"이 샘플을 목록에서 지워요": "Remove this sample from the list"
+"이 샘플을 목록에서 지워요": "Remove this sample from the list",
+"확대": "Zoom in",
+"축소": "Zoom out",
+"파장 확대 배율": "Waveform zoom",
+"전체 보기": "Show all",
+"Ctrl + 마우스 휠로 확대·축소, 마우스 휠로 좌우 이동": "Ctrl + mouse wheel to zoom, mouse wheel to scroll sideways",
+"뭉치와 같은 소리": "Same sound as the bundle",
+"▶ 선택한 노드 듣기": "▶ Play the selected node",
+"선택한 노드의 소리": "Sound of the selected node",
+"이 노드만 다른 소리로 바꿔요. 고르지 않으면 뭉치와 같은 소리예요": "Give only this node another sound. If you choose none, it has the same sound as the bundle",
+"내 곡의 박자를 참조곡 박자로 바꿔요. 같게 맞추면 참조곡의 원래 소리를 늘이거나 줄이지 않고 그대로 들려줘요": "Changes the tempo of my song to the tempo of the reference song. When both are the same, the original sound of the reference song is played as it is, without being stretched or squeezed",
+"노드가 없는 구간도 원곡 그대로": "Also play the parts without nodes as in the original",
+"켜면 노드가 없는 구간의 소리도 원곡 그대로 들려요. 끄면 노드가 있는 곳의 소리만 나와요": "When on, the parts without nodes also sound exactly as in the original. When off, only the places that have nodes are heard",
+"노드마다 소리를 따로 정해요(노드 카드의 \"소리\"). 새로 놓는 노드는 그 라인에서 마지막으로 고른 소리로 시작해요. 참조곡에서 온 노드는 \"참조곡의 원래 소리\"를 고르면 샘플 대신 그 레인의 실제 연주가 나와요. 노드의 음높이를 바꾸면 그만큼 소리의 높이도 바뀌어요.": "Each node has its own sound (“Sound” on the node card). A node you place starts with the sound last chosen on that line. For a node taken from the reference song, choose “Original sound of the reference song” to play the actual performance of that lane instead of a sample. If you change the pitch of the node, the sound moves up or down by the same amount."
 };
 export const PATTERNS = [
 [
@@ -1099,5 +1112,17 @@ export const PATTERNS = [
 [
 "'{a}' 을(를) 샘플 목록에서 지웠어요",
 "Removed '{a}' from the sample list"
+],
+[
+"참조곡 박자에 맞추기 ({a})",
+"Match the reference tempo ({a})"
+],
+[
+"박자를 참조곡에 맞춰 {a}으로 바꿨어요",
+"Tempo changed to {a} to match the reference song"
+],
+[
+"내 곡 박자({a})가 참조곡({b})과 달라 소리가 빠르거나 느려져요. 위의 '참조곡 박자에 맞추기'를 누르면 원래 소리 그대로 들려요",
+"The tempo of my song ({a}) is different from the reference ({b}), so the sound becomes faster or slower. Press “Match the reference tempo” above to hear the original sound as it is"
 ]
 ];

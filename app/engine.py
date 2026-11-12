@@ -212,20 +212,22 @@ def _load_stem(rid, stem):
     return _stems[key]
 
 
-def ref_note(spec, k, spb):
-    """One note played with the original sound of a reference lane: the stem is cut at the place of the note in the song
-    (as recorded, same pitch) and only squeezed or stretched to the length the note has in my song."""
+def ref_span(spec, a, b, spb, ext=0.0):
+    """The original sound of a reference lane over [a, b) beats of the song: the stem is cut out in ONE piece (as recorded, same
+    pitch) and only squeezed or stretched to the length the span has in my song. ext = seconds of the sound that go on after b."""
     y = _load_stem(spec["ref"], spec["stem"])
     f = 60.0 / float(spec["bpm"])
-    t0 = float(spec["off"]) + (float(spec.get("at") or 0.0) + float(k["s"])) * f
-    nat = float(k["l"]) * f
-    seg = y[max(0, int(t0 * SR)): max(0, int((t0 + nat) * SR))].astype(np.float32)
+    base = float(spec["off"]) + float(spec.get("at") or 0.0) * f
+    nat = (b - a) * f
+    dur = max(0.05, (b - a) * spb)
+    scale = nat / dur
+    t0 = base + a * f
+    seg = y[max(0, int(t0 * SR)): max(0, int((t0 + nat + ext * scale) * SR))].astype(np.float32)
     if len(seg) < 256:
         return None
-    dur = max(0.05, float(k["l"]) * spb)
-    if abs(dur - nat) > 0.02:
-        seg = librosa.effects.time_stretch(seg, rate=float(np.clip(nat / dur, 0.1, 10.0)))
-    want = int(dur * SR)
+    if abs(scale - 1.0) > 0.002:
+        seg = librosa.effects.time_stretch(seg, rate=float(np.clip(scale, 0.1, 10.0)))
+    want = int((dur + ext) * SR)
     return seg[:want] if len(seg) >= want else np.pad(seg, (0, want - len(seg)))
 
 
@@ -512,14 +514,75 @@ def render(payload):
     per_line = []
     for L in lines:
         events = []
+        # a note may carry a sound of its own ("sample"): such notes are played as little nodes of their own, the rest stays together
+        nodes = []
         for nd in L["nodes"]:
+            own = [q for q in nd["notes"] if q.get("sample")]
+            if not own:
+                nodes.append(nd)
+                continue
+            rest = [q for q in nd["notes"] if not q.get("sample")]
+            if rest:
+                nodes.append({**nd, "notes": rest})
+            for q in own:
+                nodes.append({**nd, "notes": [q], "sample": q["sample"]})
+        for nd in nodes:
             spec = nd.get("sample") or L["sample"]
             if not spec:
                 continue
             if spec.get("ref"):                      # the original sound of a reference lane instead of a sample
-                for k in nd["notes"]:
+                # the sound of the lane is one continuous recording: notes that touch or overlap are played as ONE piece of it
+                # (so nothing is doubled and nothing is joined by a fade); a short gap after a piece keeps the tail of the sound
+                # a note whose pitch was moved ("p" differs from its original pitch "o") is played on its own, shifted by that many
+                # semitones; the rest of the lane plays as recorded
+                def _st(q):
+                    return (int(q["p"]) - int(q["o"])) if q.get("o") is not None and q.get("p") is not None else 0
+                moved = [q for q in nd["notes"] if _st(q) != 0]
+                still = [q for q in nd["notes"] if _st(q) == 0]
+                starts = sorted(float(q["s"]) for q in nd["notes"])
+
+                def _ring_end(q):
+                    s0, e0 = float(q["s"]), float(q["s"]) + float(q["l"])
+                    nxt = next((x for x in starts if x > s0 + 1e-6), None)
+                    if nd.get("tight"):                       # listening to one note: exactly the note, nothing after it
+                        return e0
+                    cap = e0 + 1.0 / spb                      # at most one second of ring-out
+                    return max(e0, min(cap, nxt)) if nxt is not None else cap
+                span = {id(q): (float(q["s"]), _ring_end(q)) for q in moved}
+                cuts = sorted(span.values())
+                runs = []
+                if nd.get("fill") and nd.get("l"):
+                    runs = [[0.0, float(nd["l"])]]      # "as the original": the whole range of the node plays, not only where notes were found
+                    for c0, c1 in cuts:                 # ... except where a note was moved (that one plays shifted instead)
+                        nr = []
+                        for r0, r1 in runs:
+                            if c1 <= r0 or c0 >= r1:
+                                nr.append([r0, r1])
+                                continue
+                            if c0 > r0:
+                                nr.append([r0, c0])
+                            if c1 < r1:
+                                nr.append([c1, r1])
+                        runs = nr
+                else:
+                    for x0, x1 in sorted((float(q["s"]), float(q["s"]) + float(q["l"])) for q in still):
+                        if runs and (x0 - runs[-1][1]) * spb <= 0.02:
+                            runs[-1][1] = max(runs[-1][1], x1)
+                        else:
+                            runs.append([x0, x1])
+                for j, (x0, x1) in enumerate(runs):
+                    if (x1 - x0) * spb < 0.02:
+                        continue
+                    gn = (runs[j + 1][0] - x1) * spb if j + 1 < len(runs) else None
+                    ext = 0.08 if gn is None else min(gn, 0.12)
+                    if nd.get("tight"):
+                        ext = 0.0
+                    for c0, _c1 in cuts:                         # the tail of a piece never runs into a note that was moved
+                        if c0 >= x1 - 1e-9:
+                            ext = min(ext, max(0.0, (c0 - x1) * spb))
+                            break
                     try:
-                        seg = ref_note(spec, k, spb)
+                        seg = ref_span(spec, x0, x1, spb, ext)
                     except Exception:  # noqa: BLE001
                         seg = None
                     if seg is None:
@@ -528,8 +591,27 @@ def render(payload):
                     f = min(fade, len(seg) // 2)
                     if f:
                         seg[:f] *= np.linspace(0, 1, f)
+                    f = min(int(max(0.008, min(ext, 0.03)) * SR), len(seg) // 2)
+                    if f:
                         seg[-f:] *= np.linspace(1, 0, f)
-                    events.append((int((float(nd["s"]) + float(k["s"])) * spb * SR), seg))
+                    events.append((int((float(nd["s"]) + x0) * spb * SR), seg))
+                for q in moved:
+                    try:
+                        q0, q1 = span[id(q)]
+                        seg = ref_span(spec, q0, q1, spb, 0.0)
+                        if seg is not None:
+                            seg = librosa.effects.pitch_shift(seg, sr=SR, n_steps=float(_st(q))).astype(np.float32)
+                    except Exception:  # noqa: BLE001
+                        seg = None
+                    if seg is None:
+                        continue
+                    f = min(fade, len(seg) // 2)
+                    if f:
+                        seg[:f] *= np.linspace(0, 1, f)
+                    f = min(int(0.03 * SR), len(seg) // 2)
+                    if f:
+                        seg[-f:] *= np.linspace(1, 0, f)
+                    events.append((int((float(nd["s"]) + float(q["s"])) * spb * SR), seg))
                 continue
             v = get_voice(spec)
             fit = nd.get("fit") or L.get("fit") or "stretch"

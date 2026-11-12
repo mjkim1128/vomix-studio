@@ -169,6 +169,26 @@ class Voice:
         self.cache[key] = out
         return out
 
+    def shifted(self, midi):
+        """The clip at its OWN length with only the pitch moved (no stretching): the whole pitch movement of the clip is kept and
+        shifted as one, the voice colour stays. For a clip without a pitch the sound is played faster / slower and put back to its length."""
+        key = ("keep", int(midi))
+        if key in self.cache:
+            return self.cache[key]
+        if self.pitched:
+            ratio = 2.0 ** ((int(midi) - int(round(self.root))) / 12.0)
+            out = pw.synthesize(np.ascontiguousarray(self.f0 * ratio), self.sp, self.ap, SR, 5.0)
+        else:
+            y = self.y.astype(np.float32)
+            shift = (int(midi) - UNPITCHED_ROOT) / 12.0
+            out = y
+            if abs(shift) > 1e-6:
+                out = librosa.resample(y, orig_sr=SR * 2.0 ** shift, target_sr=SR)
+                out = librosa.effects.time_stretch(out, rate=float(np.clip(len(out) / max(1, len(y)), 0.1, 10.0)))
+        out = out.astype(np.float32)
+        self.cache[key] = out
+        return out
+
 
 _audio = {}
 _voices = {}
@@ -207,6 +227,42 @@ def ref_note(spec, k, spb):
         seg = librosa.effects.time_stretch(seg, rate=float(np.clip(nat / dur, 0.1, 10.0)))
     want = int(dur * SR)
     return seg[:want] if len(seg) >= want else np.pad(seg, (0, want - len(seg)))
+
+
+def keep_track(v, notes, spb):
+    """"Keep speed": the clip runs at its own speed from the start of the node (and starts again each time it has ended) while its pitch
+    follows the notes of the node at every moment: a 5-beat clip is spread over 5 beats of the melody, whatever notes those are.
+    Silence where the node has no note. Returns the audio of the whole node."""
+    end = max(float(k["s"]) + float(k["l"]) for k in notes) * spb
+    total = int(end * SR)
+    if total <= 0:
+        return None
+    ok_s = np.zeros(total, dtype=np.float32)
+    if v.pitched:
+        nf = int(end * 200.0) + 2
+        pm = np.full(nf, np.nan)
+        for k in notes:
+            pm[int(round(float(k["s"]) * spb * 200.0)): int(round((float(k["s"]) + float(k["l"])) * spb * 200.0))] = int(k["p"])
+        ok = ~np.isnan(pm)
+        idx = np.arange(nf) % len(v.f0)
+        hz = librosa.midi_to_hz(np.nan_to_num(pm, nan=60.0))
+        f0 = np.where((v.f0[idx] > 0) & ok, hz, 0.0)
+        y = pw.synthesize(np.ascontiguousarray(f0), np.ascontiguousarray(v.sp[idx]), np.ascontiguousarray(v.ap[idx]), SR, 5.0).astype(np.float32)
+        out = y[:total] if len(y) >= total else np.pad(y, (0, total - len(y)))
+        ok_s = ok[np.minimum((np.arange(total) / SR * 200.0).astype(int), nf - 1)].astype(np.float32)
+    else:
+        out = np.zeros(total, dtype=np.float32)
+        for k in notes:
+            a = int(float(k["s"]) * spb * SR)
+            b = min(total, int((float(k["s"]) + float(k["l"])) * spb * SR))
+            if b <= a:
+                continue
+            sh = v.shifted(int(k["p"]))
+            out[a:b] = sh[np.arange(a, b) % len(sh)]
+            ok_s[a:b] = 1.0
+    w = max(1, int(0.008 * SR))
+    gate = np.convolve(ok_s, np.ones(w, dtype=np.float32) / w, mode="same")
+    return (out * gate).astype(np.float32)
 
 
 def get_voice(spec):
@@ -478,6 +534,11 @@ def render(payload):
             v = get_voice(spec)
             fit = nd.get("fit") or L.get("fit") or "stretch"
             v0 = v
+            if fit == "keep" and nd["notes"] and not spec.get("bend") and not any(k.get("cs") is not None for k in nd["notes"]):
+                seg = keep_track(v0, nd["notes"], spb)
+                if seg is not None:
+                    events.append((int(float(nd["s"]) * spb * SR), seg))
+                continue
             for k in nd["notes"]:
                 # a note may carry its own piece of the cut ("cs"/"ce" = seconds inside the cut), so one cut can hold several syllables
                 v = v0
@@ -505,6 +566,15 @@ def render(payload):
                 # a node still at the clip's own pitch and about its own length plays the cut-out sound exactly as recorded
                 # (no re-synthesis, no stretching); a note longer than the clip only gets silence after it
                 same_pitch = int(k["p"]) == (int(round(v.root)) if v.pitched else UNPITCHED_ROOT)
+                if fit == "keep":
+                    # keep the clip's own length: only the pitch is moved; a note shorter than the clip cuts it off, a longer one leaves silence
+                    seg = (v.raw if same_pitch else v.shifted(int(k["p"])))[: int(dur * SR)].copy()
+                    f = min(fade, len(seg) // 2)
+                    if f:
+                        seg[:f] *= np.linspace(0, 1, f)
+                        seg[-f:] *= np.linspace(1, 0, f)
+                    events.append((int((float(nd["s"]) + float(k["s"])) * spb * SR), seg))
+                    continue
                 rnat = len(v.raw) / SR
                 if same_pitch and 0.9 * rnat <= dur <= rnat + spb:
                     want = int(dur * SR)

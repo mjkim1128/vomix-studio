@@ -3,7 +3,7 @@ import './i18n.js';   // language support (Korean / English); window.vomixTr tra
 const tx = (s) => window.vomixTr(s);   // names that are stored in Korean (default line names ...) are shown in the chosen language
 
 let PX = 96;   // pixels per beat: set from the project's horizontal zoom at the start of every App render
-const BUILD = '11/12-30';   // shown in the top bar so it is obvious whether the browser runs the newest code
+const BUILD = '11/12-32';   // shown in the top bar so it is obvious whether the browser runs the newest code
 let dragLib = null;   // the node-library entry that is being dragged (drag data cannot be read while dragging over)
 const HEADW = 168, TAB = 12, PILLTOP = 16;
 // heights that follow the vertical-size slider (set at the start of every App render); the minimums keep the
@@ -241,7 +241,7 @@ const HELP = [
     ['ul', ['위쪽 박 눈금자를 누르거나 끌면 분홍색 세로선이 생겨요. 여러 라인이 같은 박자에 놓이는지 맞춰 볼 때 써요.', '오른쪽 맨 위 "세로 기준선" 카드에 그 박자에 나오는 참조 음과 내 라인의 음이 나와요.', '"＋"로 참조 음을 같은 음으로 내 라인에 넣거나, 음을 골라 "기준선에 넣기"로 직접 넣어요.', '"기준선부터 재생"으로 그 위치부터 들어요.', '노드를 끌거나 노드 모음에서 놓을 때 기준선 근처에서 자석처럼 붙어요.']]] },
   { id: 'fit', title: '길이 맞추기', body: [
     ['p', '샘플보다 긴 음을 어떻게 채울지 정해요. 라인 전체에 정하고, 노드마다 따로 바꿀 수도 있어요.'],
-    ['ul', ['"늘리기": 소리를 음 길이만큼 늘려요. 목소리처럼 길게 끌 수 있는 소리에 좋아요.', '"반복하기": 음이 샘플보다 훨씬 길면(1.5배 이상) 샘플을 되풀이해서 채워요. 짧게 끝나는 소리에 좋아요.', '짧은 음은 어느 쪽이든 한 번만 소리 나요.']],
+    ['ul', ['"늘리기": 소리를 음 길이만큼 늘려요. 목소리처럼 길게 끌 수 있는 소리에 좋아요.', '"반복하기": 음이 샘플보다 훨씬 길면(1.5배 이상) 샘플을 되풀이해서 채워요. 짧게 끝나는 소리에 좋아요.', '"원래 속도로": 소리를 늘이거나 줄이지 않고 원래 속도로 재생해요. 예를 들어 5박짜리 소리는 노드의 5박 동안 흘러가면서 그 시간에 있는 음의 높이로 바뀌고, 끝나면 처음부터 다시 이어가요. 음이 없는 곳은 조용해요. 소리 안에 음높이가 없는 부분(자음 등)은 높이가 바뀌지 않아요.', '짧은 음은 "늘리기"와 "반복하기" 어느 쪽이든 한 번만 소리 나요.']],
     ['p', '"라인 설정 따르기"를 고르면 노드가 라인의 방식을 따라가요. 노드 모음에 저장해도 이 설정이 같이 저장돼요.']] },
   { id: 'mix', title: '믹서', body: [
     ['p', '여러 라인을 한 곡으로 합칠 때의 소리를 다듬어요. 재생 중에 바꾸면 잠시 뒤 바뀐 소리로 이어서 들려요. 멈춰 있을 때는 ▶로 들어 보세요.'],
@@ -412,7 +412,7 @@ function EntryEditor({ P, entryId, grid, upd, ui, sampleOf, specOf, defaultSampl
           ${soundOptions(P, e.sampleId || defaultSampleId)}</select></label>
         ${sampleOf(sid) && sampleOf(sid).sel && html`<button class="btn sm" title="소리의 음높이 흐름을 마우스로 잡아당겨 고쳐요" onClick=${() => { Ctl.el.pause(); Ctl.playingEntry = false; setPlaying(false); ui({ pitchEdit: sid }); }}>${sampleOf(sid).bend && sampleOf(sid).bend.length ? `음높이 곡선 · 점 ${sampleOf(sid).bend.length}개` : '음높이 곡선 편집'}</button>`}
         <label class="hint">길이 맞추기 <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} value=${e.fit || ''} onChange=${(ev) => edit((x) => { if (ev.target.value) x.fit = ev.target.value; else delete x.fit; })}>
-          <option value="">라인 설정 따르기</option><option value="stretch">늘리기</option><option value="repeat">반복하기</option></select></label>
+          <option value="">라인 설정 따르기</option><option value="stretch">늘리기</option><option value="repeat">반복하기</option><option value="keep">원래 속도로</option></select></label>
         <label class="hint">뭉치 길이(박) <input class="chip-in" type="number" step="0.25" min="0.0625" style=${{ width: '74px' }} key=${'el' + e.l} defaultValue=${fmt(e.l)} onChange=${(ev) => setLenAll(Number(ev.target.value))} /></label>
         <${B} primary=${true} t=${playing ? '■ 멈춤' : '▶ 듣기'} f=${play} />
         <span class="hint">전체 음높이</span><${B} t="↓" f=${() => transposeAll(-1)} title="뭉치 전체 반음 내리기" /><${B} t="↑" f=${() => transposeAll(1)} title="뭉치 전체 반음 올리기" /><${B} t="옥타브↓" f=${() => transposeAll(-12)} /><${B} t="옥타브↑" f=${() => transposeAll(12)} />
@@ -1297,7 +1297,7 @@ function App() {
     const id = uid('L'), nid = uid('n');
     upd((p) => {
       p.lines.push({ id, name: d.name, color: COLORS[p.lines.length % COLORS.length], size: 'small', sampleId: sid,
-        nodes: [{ id: nid, name: d.name + ' 전체', s: 0, l: T, notes: ns, refAt: 0, src: { key, a: 0, b: T }, sampleId: null }] });
+        nodes: [{ id: nid, name: d.name + ' 전체', s: 0, l: T, notes: ns, refAt: 0, src: { key, a: 0, b: T }, sampleId: 'ref' }] });
     });
     ui({ selLine: id, selNode: nid, selNote: null, notice: "'" + d.name + "' 레인을 새 라인으로 복사했어요 (노드 " + ns.length + '개' + (d.poly && U.melodyOnly !== false ? ', 멜로디 후보만' : '') + ')' });
   };
@@ -2403,10 +2403,11 @@ function App() {
               <button class="tbtn" aria-label="음높이 곡선 편집" title="소리의 음높이 흐름을 마우스로 잡아당겨 고쳐요" onClick=${() => ui({ pitchEdit: bs.id })}>${bs.bend && bs.bend.length ? `고치는 중 · 점 ${bs.bend.length}개` : '곡선 편집'}</button></div>`;
           })()}
           <div class="kv"><span>길이 맞추기</span>
-            <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="긴 음을 소리로 채우는 방법" title="늘리기: 샘플 하나를 음 길이만큼 늘려요 · 반복하기: 음이 샘플보다 훨씬 길면 샘플을 되풀이해요" value=${node.fit || ''} onChange=${(e) => editNode((nd) => { if (e.target.value) nd.fit = e.target.value; else delete nd.fit; })}>
-              <option value="">${`라인 설정 따르기 (${line.fit === 'repeat' ? '반복하기' : '늘리기'})`}</option>
+            <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="긴 음을 소리로 채우는 방법" title="늘리기: 샘플 하나를 음 길이만큼 늘려요 · 반복하기: 음이 샘플보다 훨씬 길면 샘플을 되풀이해요 · 원래 속도로: 소리를 늘이지 않고 원래 속도로 흘려보내며 음정만 노드의 음을 따라가요" value=${node.fit || ''} onChange=${(e) => editNode((nd) => { if (e.target.value) nd.fit = e.target.value; else delete nd.fit; })}>
+              <option value="">${`라인 설정 따르기 (${line.fit === 'repeat' ? '반복하기' : line.fit === 'keep' ? '원래 속도로' : '늘리기'})`}</option>
               <option value="stretch">늘리기 (소리를 길게 늘임)</option>
               <option value="repeat">반복하기 (소리를 되풀이)</option>
+              <option value="keep">원래 속도로 (음정만 멜로디에 맞춤)</option>
             </select></div>
           <button class="btn" style=${{ background: U.playing === 'node' ? '#2dd4bf' : '', color: U.playing === 'node' ? '#06231f' : '' }} onClick=${playNode}>${U.rendering === 'node' ? '만드는 중…' : U.playing === 'node' ? '■ 멈춤' : '▶ 이 노드 듣기'}</button>
           <div class="kv"><span>시작 (박째)</span><input class="in" type="number" step="0.01" style=${{ width: '110px', padding: '4px 6px' }} aria-label="노드 시작 위치 (박째)" key=${'s' + node.id + node.s + U.notice} defaultValue=${fmt(node.s + 1)} onChange=${(e) => setNodeStart(Number(e.target.value) - 1)} /></div>
@@ -2456,6 +2457,7 @@ function App() {
             <select class="in" style=${{ width: '150px', padding: '4px 6px', fontSize: '12px' }} aria-label="이 라인의 긴 음 채우는 방법" title="노드마다 따로 정하지 않으면 이 방법을 써요" value=${line.fit || 'stretch'} onChange=${(e) => upd((p) => { p.lines.find((x) => x.id === line.id).fit = e.target.value; })}>
               <option value="stretch">늘리기 (소리를 길게 늘임)</option>
               <option value="repeat">반복하기 (소리를 되풀이)</option>
+              <option value="keep">원래 속도로 (음정만 멜로디에 맞춤)</option>
             </select></div>
           <button class="btn danger" disabled=${P.lines.length < 2} onClick=${() => deleteLine(line.id)}>이 라인 삭제</button>
         </div>`}

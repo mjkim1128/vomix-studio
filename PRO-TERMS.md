@@ -12,4 +12,6 @@ Vomix Studio의 소스 코드는 [PolyForm Noncommercial 1.0.0](LICENSE)에 따�
 4. 키는 구매자 또는 후원·기여로 받은 사람 **본인용**이에요. 공개하거나 나눠 주지 마세요.
 5. 상업적 사용(판매, 유료 서비스, 회사 업무 등)은 별도 허락이 필요해요.
 
+문의와 상업적 사용 허락 요청: vomixstudio.contact@gmail.com
+
 모델(MVSep Mega 53 stems)과 기타 구성 요소는 각자의 라이선스를 따라요: [packaging/THIRD_PARTY_NOTICES.txt](packaging/THIRD_PARTY_NOTICES.txt)

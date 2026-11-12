@@ -35,6 +35,7 @@ Pro는 라이선스 키로 켜요. 자세한 조건은 [PRO-TERMS.md](PRO-TERMS.
 - 쓸 만한 **피드백**(재현되는 버그, 구체적인 개선 제안)을 주시면 **약 1개월짜리 Pro 키**를 드려요.
 - 신청은 [이슈 양식](../../issues/new?template=pro-key-request.yml)으로 해 주세요. **후원한 화면의 스크린샷과 GitHub 사용자 이름**이면 돼요(피드백이면 해당 이슈 링크). 스크린샷은 공개 글에 올라가니 카드·계좌·메일 주소는 가리고 올려 주세요. 키는 이슈에 공개하지 않고 따로 전달해요. 기간은 대략이고, 제가 확인한 뒤 정해요.
 - 후원 방법: *(GitHub Sponsors 등 개설 후 여기에 링크를 적어요)*
+- 문의: vomixstudio.contact@gmail.com
 
 ## 직접 실행하기 (개발용)
 파이썬 3.10과 가상환경이 필요해요. 주요 패키지: torch(CPU), demucs, basic-pitch, librosa, pyworld, fastapi, uvicorn, scipy, soundfile.
@@ -49,4 +50,4 @@ Pro는 라이선스 키로 켜요. 자세한 조건은 [PRO-TERMS.md](PRO-TERMS.
 ---
 
 # English summary
-Vomix Studio is a local Windows tool for making otomad / YTPMV: short samples are fitted to the notes of a melody, with hints taken from a reference song. It does not compose for you. The interface is available in Korean and English. Free plan: 3 lines. Pro: unlimited lines and the precise 53-stem analysis. Source code is under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`, `PRO-TERMS.md`). Sponsors get about 3 months of Pro, useful feedback about 1 month — open a "Pro key request" issue.
+Vomix Studio is a local Windows tool for making otomad / YTPMV: short samples are fitted to the notes of a melody, with hints taken from a reference song. It does not compose for you. The interface is available in Korean and English. Free plan: 3 lines. Pro: unlimited lines and the precise 53-stem analysis. Source code is under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`, `PRO-TERMS.md`). Sponsors get about 3 months of Pro, useful feedback about 1 month — open a "Pro key request" issue. Contact: vomixstudio.contact@gmail.com

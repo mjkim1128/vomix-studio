@@ -3,7 +3,7 @@ import './i18n.js';   // language support (Korean / English); window.vomixTr tra
 const tx = (s) => window.vomixTr(s);   // names that are stored in Korean (default line names ...) are shown in the chosen language
 
 let PX = 96;   // pixels per beat: set from the project's horizontal zoom at the start of every App render
-const BUILD = '11/12-32';   // shown in the top bar so it is obvious whether the browser runs the newest code
+const BUILD = '11/12-33';   // shown in the top bar so it is obvious whether the browser runs the newest code
 let dragLib = null;   // the node-library entry that is being dragged (drag data cannot be read while dragging over)
 const HEADW = 168, TAB = 12, PILLTOP = 16;
 // heights that follow the vertical-size slider (set at the start of every App render); the minimums keep the
@@ -1617,6 +1617,22 @@ function App() {
       } catch (e) { ui({ notice: e.message }); }
     }
   };
+  // remove a sample from the list; nodes that used it fall back to their line's sound (the audio file itself stays, trimmed pieces may still need it)
+  const deleteSample = (s) => {
+    const used = P.lines.reduce((a, L) => a + L.nodes.filter((n) => n.sampleId === s.id).length, 0) + P.lib.filter((d) => d.sampleId === s.id).length;
+    const rest = P.samples.filter((x) => !x.piece && x.id !== s.id).length;
+    const more = used ? '\n이 소리를 쓰던 노드 ' + used + '개는 다른 소리로 바뀌어요.' + (rest ? '' : '\n(남은 샘플이 없어 소리가 없어져요)') : '';
+    if (!window.confirm("'" + s.file + "' 샘플을 목록에서 지울까요?" + more)) return;
+    upd((p) => {
+      p.samples = p.samples.filter((x) => x.id !== s.id);
+      p.lines.forEach((L) => {
+        if (L.sampleId === s.id) L.sampleId = null;
+        L.nodes.forEach((n) => { if (n.sampleId === s.id) n.sampleId = null; });
+      });
+      p.lib.forEach((d) => { if (d.sampleId === s.id) d.sampleId = null; });
+    });
+    ui({ armed: U.armed === s.id ? null : U.armed, cutting: U.cutting === s.id ? null : U.cutting, notice: "'" + s.file + "' 을(를) 샘플 목록에서 지웠어요" });
+  };
   // A sample piece turned into a node goes to the node library: one note at the sample's own pitch (so it plays
   // unchanged), as long as the piece itself (rounded up to the grid). Drag it from the library onto a line afterwards.
   const makeSampleLibNode = (s, sel, root, parts) => {
@@ -2212,6 +2228,7 @@ function App() {
                   <span class="sub">${on ? '들고 있음 · 구간을 누르세요' : s.sel ? s.sel.start.toFixed(2) + '~' + s.sel.end.toFixed(2) + '초' + (s.sel.root != null ? ' · 기준음 ' + noteName(Math.round(s.sel.root)) : ' · 음높이 못 찾음 (라 기준)') : ''}</span>
                 </button>
                 <button class="tbtn" aria-label=${s.file + ' 자르기'} onClick=${() => ui({ cutting: s.id })}>자르기</button>
+                <button class="tbtn" aria-label=${s.file + ' 삭제'} title="이 샘플을 목록에서 지워요" onClick=${() => deleteSample(s)}>삭제</button>
               </div>`;
             })}
           </div>

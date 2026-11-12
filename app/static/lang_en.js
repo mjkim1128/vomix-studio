@@ -535,7 +535,9 @@ export const EXACT = {
 "원래 속도로": "Keep speed",
 "원래 속도로 (음정만 멜로디에 맞춤)": "Keep speed (only the pitch follows the melody)",
 "늘리기: 샘플 하나를 음 길이만큼 늘려요 · 반복하기: 음이 샘플보다 훨씬 길면 샘플을 되풀이해요 · 원래 속도로: 소리를 늘이지 않고 원래 속도로 흘려보내며 음정만 노드의 음을 따라가요": "Stretch: stretches one sample to the note length · Repeat: if the note is much longer than the sample, the sample repeats · Keep speed: does not stretch the sound, it plays at its own speed and only its pitch follows the notes of the node",
-"\"원래 속도로\": 소리를 늘이거나 줄이지 않고 원래 속도로 재생해요. 예를 들어 5박짜리 소리는 노드의 5박 동안 흘러가면서 그 시간에 있는 음의 높이로 바뀌고, 끝나면 처음부터 다시 이어가요. 음이 없는 곳은 조용해요. 소리 안에 음높이가 없는 부분(자음 등)은 높이가 바뀌지 않아요.": "“Keep speed”: plays the sound at its own speed, without stretching or squeezing it. For example, a 5-beat sound runs through the 5 beats of the node and takes the pitch of the note at each moment, and when it ends it starts again from the beginning. Where there is no note it is quiet. Parts of the sound that have no pitch (consonants and the like) do not change pitch."
+"\"원래 속도로\": 소리를 늘이거나 줄이지 않고 원래 속도로 재생해요. 예를 들어 5박짜리 소리는 노드의 5박 동안 흘러가면서 그 시간에 있는 음의 높이로 바뀌고, 끝나면 처음부터 다시 이어가요. 음이 없는 곳은 조용해요. 소리 안에 음높이가 없는 부분(자음 등)은 높이가 바뀌지 않아요.": "“Keep speed”: plays the sound at its own speed, without stretching or squeezing it. For example, a 5-beat sound runs through the 5 beats of the node and takes the pitch of the note at each moment, and when it ends it starts again from the beginning. Where there is no note it is quiet. Parts of the sound that have no pitch (consonants and the like) do not change pitch.",
+"(남은 샘플이 없어 소리가 없어져요)": "(No samples are left, so they will have no sound)",
+"이 샘플을 목록에서 지워요": "Remove this sample from the list"
 };
 export const PATTERNS = [
 [
@@ -1085,5 +1087,17 @@ export const PATTERNS = [
 [
 "주황색 = 지금 쓰는 구간: {a} ~ {b}초",
 "Orange = range in use: {a} – {b} sec"
+],
+[
+"'{a}' 샘플을 목록에서 지울까요?{b}",
+"Remove sample '{a}' from the list?{b}"
+],
+[
+"이 소리를 쓰던 노드 {a}개는 다른 소리로 바뀌어요.",
+"{a|node|nodes} that used this sound will switch to another sound."
+],
+[
+"'{a}' 을(를) 샘플 목록에서 지웠어요",
+"Removed '{a}' from the sample list"
 ]
 ];

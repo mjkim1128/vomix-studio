@@ -1,6 +1,6 @@
 # Pro 기능과 라이선스 키 (Pro terms)
 
-저작권자: mj (https://github.com/mjkim1128)
+저작권자: MJ, Vomix Studio 제작자 (https://github.com/mjkim1128)
 
 Vomix Studio의 소스 코드는 [PolyForm Noncommercial 1.0.0](LICENSE)에 따라 **비상업적 목적**으로 보고, 쓰고, 고칠 수 있어요.
 이에 더해 아래 내용이 적용돼요. (초안이에요. 중요한 판매 전에는 전문가 확인을 권해요.)

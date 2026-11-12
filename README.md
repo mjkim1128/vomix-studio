@@ -42,7 +42,7 @@ Pro는 라이선스 키로 켜요. 자세한 조건은 [PRO-TERMS.md](PRO-TERMS.
 `run.bat`(또는 `python launcher.py`)로 실행해요. 정밀 분석 모델 파일(`models/mega53`, 약 1.3GB)은 이 저장소에 들어 있지 않아요.
 
 ## 라이선스
-- 저작권자: mj ([@mjkim1128](https://github.com/mjkim1128))
+- 저작권자: MJ, Vomix Studio 제작자 ([@mjkim1128](https://github.com/mjkim1128))
 - 소스 코드: [PolyForm Noncommercial 1.0.0](LICENSE) — 비상업적 사용만 허락돼요. Pro 관련 조건은 [PRO-TERMS.md](PRO-TERMS.md).
 - 정밀 분석 모델(MVSep Mega 53 stems)은 ZFTurbo가 MIT로 공개한 것이에요. 학습 음원의 저작권을 모두 갖고 있지는 않다고 밝혔고 보증 없이 제공돼요. 구성 요소별 고지는 [packaging/THIRD_PARTY_NOTICES.txt](packaging/THIRD_PARTY_NOTICES.txt).
 - **사용 권리가 있는 곡만 분석해 주세요.** 참조곡과 샘플의 저작권 책임은 사용자에게 있어요.

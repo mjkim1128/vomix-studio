@@ -67,6 +67,9 @@ def analyze_sample(path):
     return {"duration": round(dur, 3), "segments": segs, "default": default, "peaks": peaks}
 
 
+UNPITCHED_ROOT = 57   # nominal pitch of a sound without a measurable pitch (same default as the screen)
+
+
 class Voice:
     """One clip that can be re-pitched and length-fitted. Tonal clips use WORLD
     (formant-preserving); non-tonal clips are only time-stretched."""
@@ -80,7 +83,13 @@ class Voice:
         self.cache = {}
         f0, t = pw.harvest(self.y, SR, f0_floor=60.0, f0_ceil=1000.0, frame_period=5.0)
         v = f0[f0 > 0]
-        self.pitched = len(v) >= max(5, 0.3 * len(f0))
+        # a sound counts as pitched when a good part of it carries a pitch AND the pitch holds for at least a few frames in a row
+        # (a short word like a burst of consonant + vowel may be only 15-30 % voiced, and must still follow the melody)
+        run = best = 0
+        for x in f0 > 0:
+            run = run + 1 if x else 0
+            best = max(best, run)
+        self.pitched = len(v) >= max(6, 0.12 * len(f0)) and best >= 5
         self.root = float(np.median(librosa.hz_to_midi(v))) if self.pitched else None
         if self.pitched:
             self.f0 = f0
@@ -146,8 +155,14 @@ class Voice:
             f0, sp, ap = self._frames(midi, n_out, hold)
             out = pw.synthesize(f0, sp, ap, SR, 5.0)
         else:
-            rate = float(np.clip((len(self.y) / SR) / dur, 0.1, 10.0))
-            out = librosa.effects.time_stretch(self.y.astype(np.float32), rate=rate)
+            # no pitch to follow: change the pitch by playing the sound faster / slower (relative to the nominal root, A3 = 57,
+            # which is also what the screen shows as "semitones moved"), then fit the length
+            y = self.y.astype(np.float32)
+            shift = (int(midi) - UNPITCHED_ROOT) / 12.0
+            if abs(shift) > 1e-6:
+                y = librosa.resample(y, orig_sr=SR * 2.0 ** shift, target_sr=SR)
+            rate = float(np.clip((len(y) / SR) / dur, 0.1, 10.0))
+            out = librosa.effects.time_stretch(y, rate=rate)
         out = out.astype(np.float32)
         want = int(dur * SR)
         out = out[:want] if len(out) >= want else np.pad(out, (0, want - len(out)))
@@ -163,6 +178,35 @@ def _load(file):
     if file not in _audio:
         _audio[file], _ = librosa.load(str(DATA / "samples" / file), sr=SR, mono=True)
     return _audio[file]
+
+
+_stems = {}
+
+
+def _load_stem(rid, stem):
+    key = (rid, stem)
+    if key not in _stems:
+        if len(_stems) >= 4:
+            _stems.pop(next(iter(_stems)))
+        _stems[key], _ = librosa.load(str(DATA / "refs" / rid / "stems" / (stem + ".wav")), sr=SR, mono=True)
+    return _stems[key]
+
+
+def ref_note(spec, k, spb):
+    """One note played with the original sound of a reference lane: the stem is cut at the place of the note in the song
+    (as recorded, same pitch) and only squeezed or stretched to the length the note has in my song."""
+    y = _load_stem(spec["ref"], spec["stem"])
+    f = 60.0 / float(spec["bpm"])
+    t0 = float(spec["off"]) + (float(spec.get("at") or 0.0) + float(k["s"])) * f
+    nat = float(k["l"]) * f
+    seg = y[max(0, int(t0 * SR)): max(0, int((t0 + nat) * SR))].astype(np.float32)
+    if len(seg) < 256:
+        return None
+    dur = max(0.05, float(k["l"]) * spb)
+    if abs(dur - nat) > 0.02:
+        seg = librosa.effects.time_stretch(seg, rate=float(np.clip(nat / dur, 0.1, 10.0)))
+    want = int(dur * SR)
+    return seg[:want] if len(seg) >= want else np.pad(seg, (0, want - len(seg)))
 
 
 def get_voice(spec):
@@ -416,6 +460,21 @@ def render(payload):
             spec = nd.get("sample") or L["sample"]
             if not spec:
                 continue
+            if spec.get("ref"):                      # the original sound of a reference lane instead of a sample
+                for k in nd["notes"]:
+                    try:
+                        seg = ref_note(spec, k, spb)
+                    except Exception:  # noqa: BLE001
+                        seg = None
+                    if seg is None:
+                        continue
+                    seg = seg.copy()
+                    f = min(fade, len(seg) // 2)
+                    if f:
+                        seg[:f] *= np.linspace(0, 1, f)
+                        seg[-f:] *= np.linspace(1, 0, f)
+                    events.append((int((float(nd["s"]) + float(k["s"])) * spb * SR), seg))
+                continue
             v = get_voice(spec)
             fit = nd.get("fit") or L.get("fit") or "stretch"
             v0 = v
@@ -445,7 +504,7 @@ def render(payload):
                 nat = len(v.y) / SR
                 # a node still at the clip's own pitch and about its own length plays the cut-out sound exactly as recorded
                 # (no re-synthesis, no stretching); a note longer than the clip only gets silence after it
-                same_pitch = (not v.pitched) or int(k["p"]) == int(round(v.root))
+                same_pitch = int(k["p"]) == (int(round(v.root)) if v.pitched else UNPITCHED_ROOT)
                 rnat = len(v.raw) / SR
                 if same_pitch and 0.9 * rnat <= dur <= rnat + spb:
                     want = int(dur * SR)

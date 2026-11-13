@@ -3,7 +3,7 @@ import './i18n.js';   // language support (Korean / English); window.vomixTr tra
 const tx = (s) => window.vomixTr(s);   // names that are stored in Korean (default line names ...) are shown in the chosen language
 
 let PX = 96;   // pixels per beat: set from the project's horizontal zoom at the start of every App render
-const BUILD = '11/13-65';   // shown in the top bar so it is obvious whether the browser runs the newest code
+const BUILD = '11/13-66';   // shown in the top bar so it is obvious whether the browser runs the newest code
 let dragLib = null;   // the node-library entry that is being dragged (drag data cannot be read while dragging over)
 const HEADW = 168, TAB = 12, PILLTOP = 16;
 // heights that follow the vertical-size slider (set at the start of every App render); the minimums keep the
@@ -2239,25 +2239,46 @@ function App() {
   };
   // the sound this note plays: its own sample, else the bundle's, else the line's (a reference sound has no cut to narrow)
   const noteSample = (k) => { const id = (k && k.sampleId) || (node && node.sampleId) || (line && line.sampleId); return id && id !== 'ref' ? sampleOf(id) : null; };
+  // What was chosen on the sound that comes out of the node (a .. b beats from the start of the note, "full" = where that sound stops) is
+  // turned into a part of the sample itself: the note gets its own "cs".."ce" (seconds inside the cut of the sample), starts where the kept part
+  // started and is as long as the kept part. So it is an ordinary note again and can be made longer or shorter afterwards.
+  const cutSource = (k) => {
+    const sm = noteSample(k);
+    const whole = sm && sm.sel ? sm.sel.end - sm.sel.start : 0;
+    const c0 = k.cs != null ? k.cs : 0, c1 = k.ce != null ? k.ce : whole;
+    return { c0, c1 };
+  };
   const applyNoteCut = ({ a, b, full }) => {
     const isFull = a <= 0.002 && b >= full - 0.01;
     editNote((k, nd) => {
-      if (isFull) { delete k.ts; delete k.te; } else { if (a > 0.002) k.ts = r6(a); else delete k.ts; if (b < full - 0.01) k.te = r6(b); else delete k.te; }
+      delete k.ts; delete k.te;                       // (older builds kept the cut as a window on the output)
+      if (!isFull) {
+        const { c0, c1 } = cutSource(k);
+        const f = (x) => c0 + (x / full) * (c1 - c0);
+        k.cs = r6(f(a)); k.ce = r6(f(b));
+        k.s = clamp(r6(k.s + a), 0, Math.max(0, r6(nd.l - 0.0625)));
+        k.l = clamp(r6(b - a), 0.0625, Math.max(0.0625, r6(nd.l - k.s)));
+      }
       nd.edited = true;
     });
-    ui({ noteCut: false, notice: isFull ? '자른 소리를 전체로 되돌렸어요' : '노드의 소리를 ' + a.toFixed(2) + ' ~ ' + b.toFixed(2) + '박만 남겼어요' });
+    ui({ noteCut: false, notice: isFull ? '소리는 그대로예요' : '노드의 소리를 ' + a.toFixed(2) + ' ~ ' + b.toFixed(2) + '박 부분만 남겼어요. 길이는 다시 늘리거나 줄일 수 있어요' });
   };
   const splitNoteCut = ({ a, b, m, full }) => {
     editNote((k, nd) => {
-      const second = { ...k, ts: r6(m) };
-      if (b < full - 0.01) second.te = r6(b); else delete second.te;
-      if (a > 0.002) k.ts = r6(a); else delete k.ts;
-      k.te = r6(m);
+      delete k.ts; delete k.te;
+      const { c0, c1 } = cutSource(k);
+      const f = (x) => c0 + (x / full) * (c1 - c0);
+      const s0 = k.s;
+      const second = { ...k, s: clamp(r6(s0 + m), 0, Math.max(0, r6(nd.l - 0.0625))), cs: r6(f(m)), ce: r6(f(b)) };
+      second.l = clamp(r6(b - m), 0.0625, Math.max(0.0625, r6(nd.l - second.s)));
+      k.s = clamp(r6(s0 + a), 0, Math.max(0, r6(nd.l - 0.0625)));
+      k.cs = r6(f(a)); k.ce = r6(f(m));
+      k.l = clamp(r6(m - a), 0.0625, Math.max(0.0625, r6(nd.l - k.s)));
       nd.notes.push(second);
-      nd.notes.sort((x, y) => (x.s + (x.ts || 0)) - (y.s + (y.ts || 0)));
+      nd.notes.sort((x, y) => x.s - y.s);
       nd.edited = true;
     });
-    ui({ noteCut: false, selMore: null, notice: '노드의 소리를 표시한 곳에서 둘로 나눴어요' });
+    ui({ noteCut: false, selMore: null, notice: '노드를 표시한 곳에서 둘로 나눴어요. 각각 길이를 늘리거나 줄일 수 있어요' });
   };
   // the sound that comes out of the selected note alone (nothing cut away), as WAV bytes for the cutting window
   const noteAudio = async () => {
@@ -2926,7 +2947,7 @@ function App() {
             <div class="two"><button class="btn" onClick=${() => noteLen(-0.1)}>−0.1</button><button class="btn" onClick=${() => noteLen(-0.01)}>−0.01</button><button class="btn" onClick=${() => noteLen(0.01)}>+0.01</button><button class="btn" onClick=${() => noteLen(0.1)}>+0.1</button></div>
             <div class="two"><button class="btn" onClick=${() => noteLen(-grid)}>${`${fmt(grid)}박 짧게`}</button><button class="btn" onClick=${() => noteLen(grid)}>${`${fmt(grid)}박 길게`}</button></div>
             <button class="btn" onClick=${noteToNext}>다음 노드 앞까지 늘이기</button>
-            ${selIdx.length === 1 && (() => { const sm = noteSample(note); return html`<button class="btn" disabled=${!sm || !sm.sel} title=${sm && sm.sel ? '이 노드가 내는 소리에서 원하는 부분만 쓰게 잘라요 (예: 끝 글자 빼기)' : '샘플 소리를 쓰는 노드에서만 쓸 수 있어요 (참조곡 원음은 안 돼요)'} onClick=${() => { Ctl.el.pause(); ui({ noteCut: true }); }}>${note.ts != null || note.te != null ? '소리 구간 자르기 · 자른 상태' : '소리 구간 자르기'}</button>`; })()}
+            ${selIdx.length === 1 && (() => { const sm = noteSample(note); return html`<button class="btn" disabled=${!sm || !sm.sel} title=${sm && sm.sel ? '이 노드가 내는 소리에서 원하는 부분만 쓰게 잘라요 (예: 끝 글자 빼기)' : '샘플 소리를 쓰는 노드에서만 쓸 수 있어요 (참조곡 원음은 안 돼요)'} onClick=${() => { Ctl.el.pause(); ui({ noteCut: true }); }}>${note.cs != null || note.ts != null || note.te != null ? '소리 구간 자르기 · 자른 상태' : '소리 구간 자르기'}</button>`; })()}
             <button class="btn primary" onClick=${saveNotesToLib}>${selIdx.length > 1 ? '고른 노드 ' + selIdx.length + '개를 노드 모음에 저장' : '이 노드를 노드 모음에 저장'}</button>
             <div class="two">${selIdx.length === 1 && html`<button class="btn" onClick=${duplicateNote}>한 칸 뒤에 복제</button>`}${selIdx.length === 1 && html`<button class="btn" onClick=${splitNode}>이 노드 앞에서 뭉치 쪼개기</button>`}</div>
             <button class="btn danger" onClick=${deleteNote}>${selIdx.length > 1 ? '고른 노드 지우기' : '이 노드 지우기'}</button>

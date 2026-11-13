@@ -640,7 +640,9 @@ export const EXACT = {
 "내보내기": "Export",
 "내보낼 노드가 없어요": "There is no node to export",
 "내보낼 파일 만드는 중…": "Making the files…",
-"내보냈어요 (vomix-export.zip). 안의 README.txt에 파일 설명이 있어요": "Exported (vomix-export.zip). README.txt inside explains the files"
+"내보냈어요 (vomix-export.zip). 안의 README.txt에 파일 설명이 있어요": "Exported (vomix-export.zip). README.txt inside explains the files",
+"소리는 그대로예요": "The sound stays as it is",
+"노드를 표시한 곳에서 둘로 나눴어요. 각각 길이를 늘리거나 줄일 수 있어요": "The node was split at the mark. Each part can be made longer or shorter"
 };
 export const PATTERNS = [
 [

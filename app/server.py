@@ -95,6 +95,15 @@ def export_pack(payload: dict = Body(...)):
     return Response(data, media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="vomix-export.zip"'})
 
 
+@app.post("/api/note-map")
+def note_map(payload: dict = Body(...)):
+    """Which part of a cut is heard when, for one note: {spec:{file,start,end}, p, l, fit, bpm} -> {pts:[[heard s, cut s]]}"""
+    try:
+        return {"pts": engine.note_map(payload["spec"], payload["p"], payload["l"], payload.get("fit") or "stretch", payload["bpm"])}
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(400, str(ex))
+
+
 @app.post("/api/render")
 def render(payload: dict = Body(...)):
     try:

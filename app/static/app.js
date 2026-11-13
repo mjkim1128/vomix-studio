@@ -3,7 +3,7 @@ import './i18n.js';   // language support (Korean / English); window.vomixTr tra
 const tx = (s) => window.vomixTr(s);   // names that are stored in Korean (default line names ...) are shown in the chosen language
 
 let PX = 96;   // pixels per beat: set from the project's horizontal zoom at the start of every App render
-const BUILD = '11/13-66';   // shown in the top bar so it is obvious whether the browser runs the newest code
+const BUILD = '11/14-68';   // shown in the top bar so it is obvious whether the browser runs the newest code
 let dragLib = null;   // the node-library entry that is being dragged (drag data cannot be read while dragging over)
 const HEADW = 168, TAB = 12, PILLTOP = 16;
 // heights that follow the vertical-size slider (set at the start of every App render); the minimums keep the
@@ -240,7 +240,7 @@ const HELP = [
     ['h', '노드 위치를 정확히'],
     ['ul', ['오른쪽 카드의 "시작(박째)"과 "길이(박)"에 숫자를 직접 넣어요. 0.448박 같은 값도 돼요.', '−0.1, −0.01, +0.01, +0.1 버튼으로 아주 조금씩 움직여요.', '참조곡에서 만든 노드는 "참조곡 위치에 맞추기"로 원래 위치에 되돌려요.', '위쪽 "격자"에서 "자유"를 고르면 격자 없이 움직여요. 끌 때 Alt를 눌러도 같아요.']],
     ['h', '세로 기준선'],
-    ['ul', ['위쪽 박 눈금자를 누르거나 끌면 분홍색 세로선이 생겨요. 여러 라인이 같은 박자에 놓이는지 맞춰 볼 때 써요.', '오른쪽 맨 위 "세로 기준선" 카드에 그 박자에 나오는 참조 음과 내 라인의 음이 나와요.', '"＋"로 참조 음을 같은 음으로 내 라인에 넣거나, 음을 골라 "기준선에 넣기"로 직접 넣어요.', '"기준선부터 재생"으로 그 위치부터 들어요.', '노드를 끌거나 노드 모음에서 놓을 때 기준선 근처에서 자석처럼 붙어요.']]] },
+    ['ul', ['위쪽 박 눈금자를 누르거나 끌면 색이 있는 세로선이 생겨요. 눈금자를 Shift + 클릭하면 기준선을 더 만들 수 있고, 오른쪽 "세로 기준선" 카드에서 선마다 색을 바꾸고 위치를 입력하고 지울 수 있어요. 여러 라인이 같은 박자에 놓이는지 맞춰 볼 때 써요.', '오른쪽 맨 위 "세로 기준선" 카드에 선택한 기준선의 박자에 나오는 참조 음과 내 라인의 음이 나와요.', '"＋"로 참조 음을 같은 음으로 내 라인에 넣거나, 음을 골라 "기준선에 넣기"로 직접 넣어요.', '"기준선부터 재생"으로 그 위치부터 들어요.', '노드를 끌거나 노드 모음에서 놓을 때 기준선 근처에서 자석처럼 붙어요.']]] },
   { id: 'fit', title: '길이 맞추기', body: [
     ['p', '샘플보다 긴 음을 어떻게 채울지 정해요. 라인 전체에 정하고, 노드마다 따로 바꿀 수도 있어요.'],
     ['ul', ['"늘리기": 소리를 음 길이만큼 늘려요. 목소리처럼 길게 끌 수 있는 소리에 좋아요.', '"반복하기": 음이 샘플보다 훨씬 길면(1.5배 이상) 샘플을 되풀이해서 채워요. 짧게 끝나는 소리에 좋아요.', '"원래 속도로": 소리를 늘이거나 줄이지 않고 원래 속도로 재생해요. 예를 들어 5박짜리 소리는 노드의 5박 동안 흘러가면서 그 시간에 있는 음의 높이로 바뀌고, 끝나면 처음부터 다시 이어가요. 음이 없는 곳은 조용해요. 소리 안에 음높이가 없는 부분(자음 등)은 높이가 바뀌지 않아요.', '짧은 음은 "늘리기"와 "반복하기" 어느 쪽이든 한 번만 소리 나요.']],
@@ -1499,7 +1499,38 @@ function App() {
   const selIdx = node && U.selNote != null
     ? [U.selNote, ...((U.selMore && U.selMore.node === node.id && U.selMore.primary === U.selNote ? U.selMore.list : []).filter((i) => i !== U.selNote))].filter((i) => node.notes[i])
     : [];
-  const guide = U.guide != null ? U.guide : null;   // the vertical guide line (in beats), null = not placed
+  // vertical guide lines: several can be placed, each with its own colour. One is selected: it is "the guide" for the card, "play from the guide",
+  // placing a note at the guide and so on. Every guide line works as a magnet.
+  const GUIDE_COLORS = ['#f472b6', '#38bdf8', '#fbbf24', '#34d399', '#a78bfa', '#fb923c', '#22d3ee', '#f87171'];
+  const guides = U.guides || [];
+  const gSel = guides.find((g) => g.id === U.guideSel) || guides[0] || null;
+  const guide = gSel ? gSel.beat : null;   // beats of the selected guide line, null = none placed
+  const gColor = gSel ? gSel.color : '#f472b6';
+  const setGuides = (fn) => setU((u) => ({ ...u, guides: fn(u.guides || []) }));
+  const addGuideAt = (beat) => {
+    const used = new Set(guides.map((g) => g.color));
+    const color = GUIDE_COLORS.find((c) => !used.has(c)) || GUIDE_COLORS[guides.length % GUIDE_COLORS.length];
+    const g = { id: uid('g'), beat: clamp(r6(beat), 0, T), color };
+    setU((u) => ({ ...u, guides: [...(u.guides || []), g], guideSel: g.id }));
+    return g.id;
+  };
+  const moveGuide = (id, beat) => setGuides((gs) => gs.map((g) => (g.id === id ? { ...g, beat: clamp(r6(beat), 0, T) } : g)));
+  const recolorGuide = (id, color) => setGuides((gs) => gs.map((g) => (g.id === id ? { ...g, color } : g)));
+  const removeGuide = (id) => setU((u) => {
+    const gs = (u.guides || []).filter((g) => g.id !== id);
+    return { ...u, guides: gs, guideSel: u.guideSel === id ? (gs[0] ? gs[0].id : null) : u.guideSel };
+  });
+  // a node that starts / ends close to ANY guide line sticks to it
+  const snapToGuides = (want, len, lo, hi) => {
+    const thr = 8 / PX;
+    let best = null;
+    guides.forEach((g) => {
+      const d1 = Math.abs(want - g.beat), d2 = Math.abs(want + len - g.beat);
+      if (d1 < thr && (!best || d1 < best.d)) best = { d: d1, v: clamp(g.beat, lo, hi) };
+      if (d2 < thr && (!best || d2 < best.d)) best = { d: d2, v: clamp(r6(g.beat - len), lo, hi) };
+    });
+    return best ? best.v : want;
+  };
 
   // ---- reference job polling
   useEffect(() => {
@@ -1748,11 +1779,7 @@ function App() {
       }
       const dx = ev.clientX - sx + (sc ? sc.scrollLeft - sl0 : 0);
       let want = clamp(r6(n.s + Math.round(dx / PX / grid) * grid), 0, T - n.l);
-      if (guide != null) {   // magnet: the node's start or end sticks to the guide line when it comes close
-        const thr = 8 / PX;
-        if (Math.abs(want - guide) < thr) want = clamp(guide, 0, T - n.l);
-        else if (Math.abs(want + n.l - guide) < thr) want = clamp(r6(guide - n.l), 0, T - n.l);
-      }
+      if (guides.length) want = snapToGuides(want, n.l, 0, T - n.l);   // magnet: the node's start or end sticks to a guide line when it comes close
       const lid = lineAt(ev.clientX, ev.clientY) || (cur ? cur.line : L.id);
       const target = P.lines.find((x) => x.id === lid);
       const s = target ? findFree(target, want, n.l, n.id) : -1;
@@ -2242,43 +2269,68 @@ function App() {
   // What was chosen on the sound that comes out of the node (a .. b beats from the start of the note, "full" = where that sound stops) is
   // turned into a part of the sample itself: the note gets its own "cs".."ce" (seconds inside the cut of the sample), starts where the kept part
   // started and is as long as the kept part. So it is an ordinary note again and can be made longer or shorter afterwards.
-  const cutSource = (k) => {
+  const noteCutSpec = (k) => {
     const sm = noteSample(k);
-    const whole = sm && sm.sel ? sm.sel.end - sm.sel.start : 0;
+    if (!sm || !sm.sel) return null;
+    const whole = sm.sel.end - sm.sel.start;
     const c0 = k.cs != null ? k.cs : 0, c1 = k.ce != null ? k.ce : whole;
-    return { c0, c1 };
+    const base = specOf(sm.id) || {};
+    return { c0, c1, spec: { file: base.file, start: r6(sm.sel.start + c0), end: r6(sm.sel.start + c1), ...(base.bend ? { bend: base.bend } : {}) } };
   };
-  const applyNoteCut = ({ a, b, full }) => {
+  // beats heard (from the note's start) -> seconds of the cut (from the start of the cut the note plays), through the map from the server
+  const heardToCut = async (k, xs) => {
+    const cs = noteCutSpec(k);
+    if (!cs) throw new Error('이 노드는 샘플 소리를 쓰지 않아서 자를 수 없어요');
+    const r = await api('/api/note-map', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spec: cs.spec, p: k.p, l: k.l, fit: node.fit || line.fit || 'stretch', bpm: P.bpm }) });
+    const pts = (await r.json()).pts;
+    const spb = 60 / P.bpm, len = cs.c1 - cs.c0;
+    const at = (beat) => {
+      const t = beat * spb;
+      let v = pts[pts.length - 1][1];
+      if (t <= pts[0][0]) v = pts[0][1];
+      else for (let i = 1; i < pts.length; i++) if (t <= pts[i][0]) { const [t0, s0] = pts[i - 1], [t1, s1] = pts[i]; v = s0 + ((t - t0) / Math.max(1e-9, t1 - t0)) * (s1 - s0); break; }
+      return clamp(v, 0, len);
+    };
+    return xs.map((x) => cs.c0 + at(x));
+  };
+  const MINCUT = 0.02;
+  const widen = (x0, x1, lim) => (x1 - x0 >= MINCUT ? [x0, x1] : [Math.max(0, Math.min(x0, lim - MINCUT)), Math.min(lim, Math.max(x1, Math.min(x0, lim - MINCUT) + MINCUT))]);
+  const applyNoteCut = async ({ a, b, full }) => {
     const isFull = a <= 0.002 && b >= full - 0.01;
-    editNote((k, nd) => {
-      delete k.ts; delete k.te;                       // (older builds kept the cut as a window on the output)
-      if (!isFull) {
-        const { c0, c1 } = cutSource(k);
-        const f = (x) => c0 + (x / full) * (c1 - c0);
-        k.cs = r6(f(a)); k.ce = r6(f(b));
-        k.s = clamp(r6(k.s + a), 0, Math.max(0, r6(nd.l - 0.0625)));
-        k.l = clamp(r6(b - a), 0.0625, Math.max(0.0625, r6(nd.l - k.s)));
-      }
-      nd.edited = true;
-    });
-    ui({ noteCut: false, notice: isFull ? '소리는 그대로예요' : '노드의 소리를 ' + a.toFixed(2) + ' ~ ' + b.toFixed(2) + '박 부분만 남겼어요. 길이는 다시 늘리거나 줄일 수 있어요' });
+    const k0 = node.notes[U.selNote];
+    try {
+      let c = null;
+      if (!isFull) { const [x, y] = await heardToCut(k0, [a, b]); const cs = noteCutSpec(k0); c = widen(x, y, cs.c1); }
+      editNote((k, nd) => {
+        delete k.ts; delete k.te;                       // (older builds kept the cut as a window on the output)
+        if (!isFull) {
+          k.cs = r6(c[0]); k.ce = r6(c[1]);
+          k.s = clamp(r6(k.s + a), 0, Math.max(0, r6(nd.l - 0.0625)));
+          k.l = clamp(r6(b - a), 0.0625, Math.max(0.0625, r6(nd.l - k.s)));
+        }
+        nd.edited = true;
+      });
+      ui({ noteCut: false, notice: isFull ? '소리는 그대로예요' : '노드의 소리를 ' + a.toFixed(2) + ' ~ ' + b.toFixed(2) + '박 부분만 남겼어요. 길이는 다시 늘리거나 줄일 수 있어요' });
+    } catch (e) { ui({ notice: e.message }); }
   };
-  const splitNoteCut = ({ a, b, m, full }) => {
-    editNote((k, nd) => {
-      delete k.ts; delete k.te;
-      const { c0, c1 } = cutSource(k);
-      const f = (x) => c0 + (x / full) * (c1 - c0);
-      const s0 = k.s;
-      const second = { ...k, s: clamp(r6(s0 + m), 0, Math.max(0, r6(nd.l - 0.0625))), cs: r6(f(m)), ce: r6(f(b)) };
-      second.l = clamp(r6(b - m), 0.0625, Math.max(0.0625, r6(nd.l - second.s)));
-      k.s = clamp(r6(s0 + a), 0, Math.max(0, r6(nd.l - 0.0625)));
-      k.cs = r6(f(a)); k.ce = r6(f(m));
-      k.l = clamp(r6(m - a), 0.0625, Math.max(0.0625, r6(nd.l - k.s)));
-      nd.notes.push(second);
-      nd.notes.sort((x, y) => x.s - y.s);
-      nd.edited = true;
-    });
-    ui({ noteCut: false, selMore: null, notice: '노드를 표시한 곳에서 둘로 나눴어요. 각각 길이를 늘리거나 줄일 수 있어요' });
+  const splitNoteCut = async ({ a, b, m, full }) => {
+    const k0 = node.notes[U.selNote];
+    try {
+      const [xa, xm, xb] = await heardToCut(k0, [a, m, b]);
+      editNote((k, nd) => {
+        delete k.ts; delete k.te;
+        const s0 = k.s;
+        const second = { ...k, s: clamp(r6(s0 + m), 0, Math.max(0, r6(nd.l - 0.0625))), cs: r6(xm), ce: r6(Math.max(xb, xm + MINCUT)) };
+        second.l = clamp(r6(b - m), 0.0625, Math.max(0.0625, r6(nd.l - second.s)));
+        k.s = clamp(r6(s0 + a), 0, Math.max(0, r6(nd.l - 0.0625)));
+        k.cs = r6(xa); k.ce = r6(Math.max(xm, xa + MINCUT));
+        k.l = clamp(r6(m - a), 0.0625, Math.max(0.0625, r6(nd.l - k.s)));
+        nd.notes.push(second);
+        nd.notes.sort((x, y) => x.s - y.s);
+        nd.edited = true;
+      });
+      ui({ noteCut: false, selMore: null, notice: '노드를 표시한 곳에서 둘로 나눴어요. 각각 길이를 늘리거나 줄일 수 있어요' });
+    } catch (e) { ui({ notice: e.message }); }
   };
   // the sound that comes out of the selected note alone (nothing cut away), as WAV bytes for the cutting window
   const noteAudio = async () => {
@@ -2449,9 +2501,15 @@ function App() {
     if (e.button !== 0) return;
     e.preventDefault();                       // no text selection / native drag while the line is moved
     const el = e.currentTarget;
+    const x0 = guideAt(e, el);
+    const raw = (e.clientX - el.getBoundingClientRect().left) / PX;
+    const near = guides.map((g) => ({ g, d: Math.abs(g.beat - raw) * PX })).sort((p, q) => p.d - q.d)[0];
+    let id;
+    if (e.shiftKey || !guides.length) id = addGuideAt(x0);                 // Shift + click (or the first one): a new guide line
+    else if (near && near.d <= 8) { id = near.g.id; ui({ guideSel: id }); }  // close to a line: take that one
+    else { id = gSel.id; ui({ guideSel: id }); moveGuide(id, x0); }       // elsewhere: the selected line comes here
     document.body.classList.add('guidedrag');
-    ui({ guide: guideAt(e, el) });
-    const move = (ev) => { if (ev.buttons === 0) { done(); return; } ev.preventDefault(); ui({ guide: guideAt(ev, el) }); };
+    const move = (ev) => { if (ev.buttons === 0) { done(); return; } ev.preventDefault(); moveGuide(id, guideAt(ev, el)); };
     const done = () => {
       document.body.classList.remove('guidedrag');
       window.removeEventListener('mousemove', move);
@@ -2511,11 +2569,7 @@ function App() {
   const libSpot = (L, e, l) => {
     const r = e.currentTarget.getBoundingClientRect();
     let want = clamp(r6(Math.floor((e.clientX - r.left) / PX / grid) * grid), 0, Math.max(0, T - l));
-    if (guide != null) {
-      const thr = 8 / PX;
-      if (Math.abs(want - guide) < thr) want = clamp(guide, 0, Math.max(0, T - l));
-      else if (Math.abs(want + l - guide) < thr) want = clamp(r6(guide - l), 0, Math.max(0, T - l));
-    }
+    if (guides.length) want = snapToGuides(want, l, 0, Math.max(0, T - l));
     const ln = P.lines.find((x) => x.id === L.id);
     return { s: ln ? findFree(ln, want, l, null) : -1, want };
   };
@@ -2793,7 +2847,7 @@ function App() {
           <div class="tl" style=${{ width: HEADW + T * PX + 'px', '--g': grid < 0.03 ? 1 : grid, '--px': PX + 'px' }}>
             <div class="ruler"><div class="hd-s">박</div>
               <div class="rl" title="눌러서 세로 기준선을 놓고, 끌어서 옮겨요 (Alt = 격자 무시)" style=${{ width: T * PX + 'px', cursor: 'pointer' }} onMouseDown=${startGuideDrag}>${Array.from({ length: Math.ceil(T / 4) }, (_, i) => html`<span key=${i} style=${{ left: i * 4 * PX + 4 + 'px' }}>${i + 1}</span>`)}
-                ${guide != null && html`<div class="gflag" style=${{ left: guide * PX + 'px' }}>${fmt(guide + 1)}</div>`}</div></div>
+                ${guides.map((g) => html`<div key=${g.id} class="gflag" style=${{ left: g.beat * PX + 'px', background: g.color, outline: g.id === (gSel && gSel.id) ? '2px solid #fff' : 'none' }}>${fmt(g.beat + 1)}</div>`)}</div></div>
             ${P.ref ? html`<div class="sect">${`참조곡 힌트 · 칸을 끌어 구간을 고른 뒤 샘플을 놓으세요 · 놓을 라인: '${line ? line.name : '(없음)'}'`}</div>` : null}
             ${visRef.map((d) => html`<${RefLane} def=${d} ctx=${ctx} key=${d.key} />`)}
             <div class="sect">내 라인
@@ -2802,7 +2856,7 @@ function App() {
             ${P.lines.map((L) => html`<${LineRow} L=${L} ctx=${ctx} key=${L.id} />`)}
             <button class="btn" style=${{ width: HEADW + 'px', position: 'sticky', left: 0, borderStyle: 'dashed' }}
               onClick=${() => { if (lineFull) { ui({ planOpen: true, notice: '무료 플랜은 내 라인을 ' + maxLines + '개까지 만들 수 있어요' }); return; } const id = uid('L'); upd((p) => { p.lines.push({ id, name: '새 라인 ' + (p.lines.length + 1), color: COLORS[p.lines.length % COLORS.length], size: 'small', sampleId: P.samples[0] ? P.samples[0].id : null, nodes: [] }); }); ui({ selLine: id, selNode: null, selNote: null }); }}>${lineFull ? `+ 라인 추가 (${P.lines.length}/${maxLines} · 프로)` : '+ 라인 추가'}</button>
-            ${guide != null && html`<div class="guideline" style=${{ left: HEADW + guide * PX + 'px' }}></div>`}
+            ${guides.map((g) => html`<div key=${g.id} class="guideline" style=${{ left: HEADW + g.beat * PX + 'px', borderLeftColor: g.color }}></div>`)}
             <${Playhead} scrollRef=${scrollRef} />
           </div>
         </div>
@@ -2814,8 +2868,18 @@ function App() {
       </div>
 
       <div class="right scroll">
-        ${guideInfo && html`<div class="h-label">${`세로 기준선 · ${fmt(guide + 1)}박째`}</div>
-          <div class="card" style=${{ borderColor: '#f472b6' }}>
+        ${guideInfo && html`<div class="h-label">${`세로 기준선 · ${guides.length}개`}</div>
+          <div class="card" style=${{ borderColor: gColor }}>
+            <div class="gsec">기준선 목록</div>
+            ${guides.map((g) => html`<div key=${g.id} class="grow" style=${{ alignItems: 'center', gap: '6px', padding: '2px 0', background: g.id === gSel.id ? 'rgba(255,255,255,0.06)' : 'transparent', borderRadius: '6px' }}>
+              <input type="color" value=${g.color} aria-label="기준선 색" title="이 기준선의 색" style=${{ width: '26px', height: '22px', padding: 0, border: '1px solid #4a5566', borderRadius: '4px', background: 'none', cursor: 'pointer' }} onChange=${(e) => recolorGuide(g.id, e.target.value)} />
+              <button class="chipbtn" style=${{ borderColor: g.id === gSel.id ? g.color : '', fontWeight: g.id === gSel.id ? 700 : 400 }} title="이 기준선을 골라요" onClick=${() => ui({ guideSel: g.id })}>${g.id === gSel.id ? '● ' : ''}선택</button>
+              <input class="in" type="number" step=${grid} style=${{ width: '70px', padding: '3px 5px' }} aria-label="기준선 위치 (박째)" key=${g.id + ':' + g.beat} defaultValue=${fmt(g.beat + 1)} onChange=${(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) moveGuide(g.id, v - 1); }} />
+              <span class="hint">박째</span>
+              <button class="chipbtn" title="이 기준선 지우기" aria-label="이 기준선 지우기" onClick=${() => removeGuide(g.id)}>✕</button></div>`)}
+            <div class="grow"><button class="chipbtn" title="선택한 기준선 4박 뒤에 새 기준선을 만들어요" onClick=${() => addGuideAt((gSel ? gSel.beat : 0) + 4)}>＋ 기준선 추가</button></div>
+            <div class="hint">눈금자를 누르면 선택한 기준선이 옮겨지고, 선 가까이를 누르면 그 선을 잡아요. Shift + 클릭이면 새 기준선이 생겨요.</div>
+            <div class="gsec">${`선택한 기준선 · ${fmt(guide + 1)}박째`}</div>
             <div class="gsec">이 박자에 나오는 참조 음</div>
             ${guideInfo.refs.length === 0 && html`<div class="hint">없음</div>`}
             <div class="grow">${guideInfo.refs.map((x) => html`<span key=${x.key + x.i} class="gdot">
@@ -2829,7 +2893,8 @@ function App() {
               ${Array.from({ length: 61 }, (_, i) => 96 - i).map((p) => html`<option key=${p} value=${String(p)}>${noteName(p)}</option>`)}</select>
               <button class="chipbtn" onClick=${() => insertNoteAtGuide(U.gPitch)}>기준선에 넣기</button></div>
             <button class="btn" onClick=${() => play('all', guide)}>▶ 기준선부터 재생</button>
-            <button class="btn ghost" onClick=${() => ui({ guide: null })}>기준선 지우기</button>
+            <div class="two"><button class="btn ghost" onClick=${() => removeGuide(gSel.id)}>선택한 기준선 지우기</button>
+              ${guides.length > 1 && html`<button class="btn ghost" onClick=${() => ui({ guides: [], guideSel: null })}>모두 지우기</button>`}</div>
           </div>`}
         ${refNoteData && refNoteDef && html`<div class="h-label">선택한 참조 음</div>
           <div class="card">
@@ -2843,7 +2908,7 @@ function App() {
             ${refNoteDef.poly && html`<div class="kv"><span>구분</span><span>${refNoteData.m ? '멜로디 후보' : '반주 ("멜로디 후보 한 줄만"을 켜면 구간 가져올 때 빠져요)'}</span></div>`}
             ${refNoteRun && refNoteRun.list.length > 1 && html`<div class="hint" style=${{ background: '#1b1f26', borderRadius: '8px', padding: '8px 10px' }}>${`같은 음이 끊김 없이 ${refNoteRun.list.length}개 이어져 있어요 (지금 음은 ${refNoteRun.pos + 1}번째). 한 줄처럼 보여도 음은 따로따로예요.`}</div>`}
             ${refHits.length > 0 && html`<div class="hint" style=${{ background: '#2a2216', border: '1px solid #f2c94c', borderRadius: '8px', padding: '8px 10px' }}>${`⚠ 이 음은 한 덩어리로 분석됐지만, 녹음을 들여다보면 소리가 ${refHits.length + 1}번 이어서 나요. 처음 + ${refHits.map((b) => fmt(b + 1) + '박째').join(', ')}에서 새로 시작해요.`}
-              <div class="grow" style=${{ marginTop: '6px' }}><button class="chipbtn" onClick=${() => ui({ guide: refHits[0] })}>첫 새 소리 위치에 기준선 놓기</button></div></div>`}
+              <div class="grow" style=${{ marginTop: '6px' }}><button class="chipbtn" onClick=${() => { if (gSel) moveGuide(gSel.id, refHits[0]); else addGuideAt(refHits[0]); }}>첫 새 소리 위치에 기준선 놓기</button></div></div>`}
             ${refNoteWith.length > 0 && html`<div class="hint" style=${{ background: '#2a2216', border: '1px solid #f2c94c', borderRadius: '8px', padding: '8px 10px' }}>${`⚠ 같은 시간에 이 레인에서 ${refNoteWith.length}개 음이 더 울려요. '녹음 그대로' 들으면 같이 섞여 들려요. '이 음만 듣기'는 줄여 줘요.`}
               <div class="grow" style=${{ marginTop: '6px' }}>${refNoteWith.map(({ n, j }) => html`<button key=${j} class="chipbtn" title=${refNoteDef.kind === 'pitch' && [0, 5, 7].includes((((n.p - refNoteData.p) % 12) + 12) % 12) ? '옥타브·4도·5도 관계라 배음이 겹쳐서, 이 음과 완전히 떼어 낼 수 없어요' : ''} onClick=${() => selectRefNote(U.refNote.key, j)}>${refNoteDef.kind === 'pitch' ? noteName(n.p) + ([0, 5, 7].includes((((n.p - refNoteData.p) % 12) + 12) % 12) ? ' (분리 어려움)' : '') : (n.k === 'kick' ? '킥' : n.k === 'snare' ? '스네어' : '하이햇')}</button>`)}</div></div>`}
             ${refNoteDef.kind === 'pitch'

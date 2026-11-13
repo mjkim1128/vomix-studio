@@ -642,7 +642,22 @@ export const EXACT = {
 "내보낼 파일 만드는 중…": "Making the files…",
 "내보냈어요 (vomix-export.zip). 안의 README.txt에 파일 설명이 있어요": "Exported (vomix-export.zip). README.txt inside explains the files",
 "소리는 그대로예요": "The sound stays as it is",
-"노드를 표시한 곳에서 둘로 나눴어요. 각각 길이를 늘리거나 줄일 수 있어요": "The node was split at the mark. Each part can be made longer or shorter"
+"노드를 표시한 곳에서 둘로 나눴어요. 각각 길이를 늘리거나 줄일 수 있어요": "The node was split at the mark. Each part can be made longer or shorter",
+"기준선 목록": "Guide lines",
+"기준선 색": "Guide line colour",
+"이 기준선의 색": "Colour of this guide line",
+"이 기준선을 골라요": "Select this guide line",
+"선택": "Select",
+"기준선 위치 (박째)": "Guide line position (beat)",
+"박째": "beat",
+"이 기준선 지우기": "Delete this guide line",
+"선택한 기준선 4박 뒤에 새 기준선을 만들어요": "Make a new guide line 4 beats after the selected one",
+"＋ 기준선 추가": "＋ Add a guide line",
+"눈금자를 누르면 선택한 기준선이 옮겨지고, 선 가까이를 누르면 그 선을 잡아요. Shift + 클릭이면 새 기준선이 생겨요.": "Click the ruler and the selected guide line moves there; click close to a line to take that one. Shift + click makes a new guide line.",
+"선택한 기준선 지우기": "Delete the selected guide line",
+"모두 지우기": "Delete all",
+"위쪽 박 눈금자를 누르거나 끌면 색이 있는 세로선이 생겨요. 눈금자를 Shift + 클릭하면 기준선을 더 만들 수 있고, 오른쪽 \"세로 기준선\" 카드에서 선마다 색을 바꾸고 위치를 입력하고 지울 수 있어요. 여러 라인이 같은 박자에 놓이는지 맞춰 볼 때 써요.": "Click or drag the beat ruler at the top and a coloured vertical line appears. Shift + click on the ruler makes more guide lines, and in the “Vertical guide line” card on the right you can change the colour, type the position and delete each line. Use it to check that several lines sit on the same beat.",
+"오른쪽 맨 위 \"세로 기준선\" 카드에 선택한 기준선의 박자에 나오는 참조 음과 내 라인의 음이 나와요.": "In the “Vertical guide line” card at the top right you see the reference notes and the notes of my lines at the beat of the selected guide line."
 };
 export const PATTERNS = [
 [

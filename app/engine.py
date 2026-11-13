@@ -76,11 +76,13 @@ class Voice:
 
     def __init__(self, y):
         self.raw = np.asarray(y, dtype=np.float32).copy()      # the cut exactly as chosen, kept for playing it as recorded
-        y, _ = librosa.effects.trim(y, top_db=35)
+        y, _ix = librosa.effects.trim(y, top_db=35)
+        self.trim0 = float(_ix[0]) / SR          # where the trimmed clip starts inside the cut (seconds)
         if len(y) < 256:       # a very short cut (or one that is almost silent): keep the cut itself instead of refusing it
             if len(self.raw) < 16:
                 raise ValueError("clip is too short")
             y = np.pad(self.raw, (0, max(0, 512 - len(self.raw))))
+            self.trim0 = 0.0
         self.y = y.astype(np.float64)
         self.cache = {}
         f0, t = pw.harvest(self.y, SR, f0_floor=60.0, f0_ceil=1000.0, frame_period=5.0)
@@ -170,6 +172,27 @@ class Voice:
         out = out[:want] if len(out) >= want else np.pad(out, (0, want - len(out)))
         self.cache[key] = out
         return out
+
+    def source_map(self, midi, dur, hold=True):
+        """Where in the CUT (seconds from its start) the sound heard at each moment of a note comes from, as ([note seconds], [cut seconds]).
+        A pitched note that is longer than the clip keeps the start and the end of the clip as recorded and holds the steady vowel in
+        between, so heard time and cut time are NOT proportional."""
+        if self.pitched:
+            n = len(self.f0)
+            n_out = max(2, int(dur * 1000 / 5.0))
+            if not hold or n_out <= n + 2:
+                src = np.linspace(0, n - 1, n_out)
+            else:
+                a, b = self.hold
+                rel = n - 1 - b
+                mid = n_out - a - rel
+                src = np.concatenate([np.arange(a), np.full(mid, (a + b) / 2.0), np.arange(b + 1, n)])[:n_out]
+                if len(src) < n_out:
+                    src = np.pad(src, (0, n_out - len(src)), mode="edge")
+            out_t = np.arange(len(src)) * 0.005
+            return out_t, self.trim0 + src * 0.005
+        nat = len(self.y) / SR
+        return np.array([0.0, dur]), np.array([self.trim0, self.trim0 + nat])
 
     def shifted(self, midi):
         """The clip at its OWN length with only the pitch moved (no stretching): the whole pitch movement of the clip is kept and
@@ -302,6 +325,33 @@ def get_voice(spec):
         y = _load(spec["file"])
         _voices[key] = Voice(y[int(key[1] * SR): int(key[2] * SR)])
     return _voices[key]
+
+
+def note_map(spec, p, length_beats, fit, bpm):
+    """[[heard seconds, cut seconds], ...] for one note of a cut: which part of the cut is heard when. Used to turn a part chosen on the
+    sound that comes out of the node back into a part of the cut."""
+    spb = 60.0 / float(bpm)
+    v = get_voice(spec)
+    dur = max(0.05, float(length_beats) * spb)
+    rnat = len(v.raw) / SR
+    same_pitch = int(p) == (int(round(v.root)) if v.pitched else UNPITCHED_ROOT)
+    if spec.get("bend"):
+        ts_, ss_ = np.array([0.0, dur]), np.array([0.0, rnat])
+    elif fit == "keep":
+        n0 = 0.0 if same_pitch else v.trim0
+        ts_, ss_ = np.array([0.0, rnat]), np.array([n0, n0 + rnat])
+    elif same_pitch and 0.9 * rnat <= dur <= rnat + spb:
+        ts_, ss_ = np.array([0.0, rnat]), np.array([0.0, rnat])
+    else:
+        nat = len(v.y) / SR
+        n_rep = max(1, int(round(dur / nat))) if fit == "repeat" and dur >= 1.5 * nat else 1
+        sub = dur / n_rep
+        t1, s1 = v.source_map(int(p), sub)
+        ts_ = np.concatenate([t1 + r * sub for r in range(n_rep)])
+        ss_ = np.concatenate([s1 for _ in range(n_rep)])
+    step = max(1, len(ts_) // 400)
+    pts = [[round(float(a), 4), round(float(min(b, rnat)), 4)] for a, b in zip(ts_[::step], ss_[::step])]
+    return pts
 
 
 # ---------------------------------------------------------------- pitch curve of a whole cut (drawn and edited in the UI)

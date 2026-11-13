@@ -58,6 +58,8 @@ def sample_contour(spec: dict = Body(...)):
 @app.post("/api/sample-split")
 def sample_split(spec: dict = Body(...)):
     try:
+        if spec.get("mode") == "syllable":
+            return {"parts": engine.split_syllables(spec)}
         return {"parts": engine.split_by_pitch(spec)}
     except Exception as ex:  # noqa: BLE001
         raise HTTPException(400, str(ex))
@@ -72,6 +74,27 @@ def sample_info(spec: dict = Body(...)):
 
 
 # ------------------------------------------------------------------- render
+@app.post("/api/export-pack")
+def export_pack(payload: dict = Body(...)):
+    """Zip for other programs: MIDI, note list, WAV of every line and of the whole song. payload = {render: <render payload>, meta: {bpm, lines:[{id, name, notes}]}, midi, csv, lines, mix}"""
+    import exporter
+    rp = payload.get("render") or {}
+
+    def render(target):
+        try:
+            return engine.render({**rp, "target": target})
+        except Exception as ex:  # noqa: BLE001
+            raise HTTPException(400, "렌더 실패: " + str(ex))
+    try:
+        data = exporter.make_pack(payload["meta"], render, bool(payload.get("midi", True)), bool(payload.get("csv", True)),
+                                  bool(payload.get("lines", True)), bool(payload.get("mix", True)))
+    except HTTPException:
+        raise
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(400, "내보내기 실패: " + str(ex))
+    return Response(data, media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="vomix-export.zip"'})
+
+
 @app.post("/api/render")
 def render(payload: dict = Body(...)):
     try:
@@ -174,6 +197,17 @@ def ref_analyze(rid: str, stem: str):
         raise HTTPException(400, str(ex))
 
 
+@app.post("/api/reference/{rid}/fill/{stem}")
+def ref_fill(rid: str, stem: str):
+    """Fill the places a stem's transcription missed with notes cut from the measured pitch line."""
+    if not re.fullmatch(r"[0-9a-f]{12}", rid) or not re.fullmatch(r"[a-z0-9_\-]{1,40}", stem):
+        raise HTTPException(400)
+    try:
+        return JSONResponse(engine.fill_gaps(rid, stem))
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
 @app.get("/api/reference/{rid}/audio")
 def ref_audio(rid: str):
     if not re.fullmatch(r"[0-9a-f]{12}", rid):
@@ -194,6 +228,19 @@ def ref_note(rid: str, stem: str, t: float, l: float, p: float):
     except ValueError as ex:
         raise HTTPException(400, str(ex))
     return Response(data, media_type="audio/wav")
+
+
+@app.get("/api/reference/{rid}/syllables/{stem}")
+def ref_syllables(rid: str, stem: str, t0: float, t1: float):
+    """Syllable pieces (speech rhythm) of a stretch of a stem: [{a, b}] in seconds of the song."""
+    if not re.fullmatch(r"[0-9a-f]{12}", rid) or not re.fullmatch(r"[a-z0-9_\-]{1,40}", stem):
+        raise HTTPException(400)
+    if t1 - t0 > 600 or t1 <= t0:
+        raise HTTPException(400, "bad range")
+    try:
+        return {"segs": [{"a": a, "b": b, "pitch": p} for a, b, p in engine.stem_syllables(rid, stem, t0, t1)]}
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(400, str(ex))
 
 
 @app.get("/api/reference/{rid}/stem/{stem}")

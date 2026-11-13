@@ -146,3 +146,12 @@ input[type=range].vfader{writing-mode:vertical-lr;direction:rtl;width:22px;heigh
 .selmode{display:flex;gap:6px;margin:2px 0 8px}
 .selmode .tbtn{flex:1;height:28px;font-size:12px}
 .tbtn:disabled{opacity:.45;cursor:not-allowed}
+
+/* while the vertical guide line is dragged: only the horizontal position counts, nothing below reacts or gets selected */
+body.guidedrag, body.guidedrag *{user-select:none !important;-webkit-user-select:none !important;cursor:ew-resize !important}
+body.guidedrag .tl .row, body.guidedrag .tl .sect{pointer-events:none}
+
+/* top bar: buttons and labels stay on one line (a long label made the bar wrap into two lines); the bar is a little tighter */
+.top{gap:12px}
+.top .btn, .top .tbtn, .top label, .top .brand{white-space:nowrap}
+.top .iconbtn{flex:none;width:30px;height:27px;padding:0;font-size:15px;line-height:1}

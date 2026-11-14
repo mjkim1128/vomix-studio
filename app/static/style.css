@@ -73,7 +73,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .lname:focus{background:#232830;border-radius:4px;outline:1px solid var(--line2)}
 
 .note{position:absolute;border-radius:3px;border:1px solid rgba(0,0,0,.35);border-left:3px solid rgba(255,255,255,.8);padding:0 3px;font-size:10px;line-height:1;font-weight:700;color:#0b1a17;text-align:left;display:flex;align-items:center;overflow:hidden}
-.note.sel{border:2px solid #fff}
+.note.sel{border:2px solid #111;box-shadow:0 0 0 2px #ffe600,0 0 12px 3px rgba(255,230,0,.65);z-index:3}   /* the selected node: a dark line inside and a bright yellow ring, easy to tell from every line colour */
 .box{position:absolute;border-radius:6px;padding:0;background:transparent;cursor:grab}
 .pill{position:absolute;border-radius:6px;padding:0;cursor:grab}
 .dragghost{position:absolute;border:2px dashed #fff;border-radius:6px;background:rgba(255,255,255,.1);pointer-events:none;z-index:5}
@@ -155,3 +155,7 @@ body.guidedrag .tl .row, body.guidedrag .tl .sect{pointer-events:none}
 .top{gap:12px}
 .top .btn, .top .tbtn, .top label, .top .brand{white-space:nowrap}
 .top .iconbtn{flex:none;width:30px;height:27px;padding:0;font-size:15px;line-height:1}
+
+/* while a floating window is moved: nothing under it reacts or gets selected */
+body.windrag, body.windrag *{user-select:none !important;-webkit-user-select:none !important;cursor:move !important}
+body.windrag .main{pointer-events:none}

@@ -125,7 +125,24 @@ class Voice:
         self.hold_sp = np.exp(np.mean(np.log(self.sp[a:b + 1] + 1e-12), axis=0))
         self.hold_ap = np.mean(self.ap[a:b + 1], axis=0)
 
-    def _frames(self, midi, n_out, hold):
+    def _hold_window(self, point):
+        """(first frame, last frame, voiced?) of the stretch that is held when a note is longer than the clip.
+        point = None: the steadiest vowel (automatic) / "front": just after the voiced part starts / "back": just before it ends /
+        a number: that many seconds from the start of the cut."""
+        n = len(self.f0)
+        c = None
+        if point == "front" or point == "back":
+            vo = np.where(self.voiced)[0]
+            if len(vo):
+                c = int(vo[0]) + 3 if point == "front" else int(vo[-1]) - 3
+        elif isinstance(point, (int, float)) and not isinstance(point, bool):
+            c = int(round((float(point) - self.trim0) / 0.005))
+        if c is None:
+            return self.hold[0], self.hold[1], True
+        c = max(0, min(n - 1, c))
+        return max(0, c - 2), min(n - 1, c + 2), bool(self.voiced[c])
+
+    def _frames(self, midi, n_out, hold, point=None):
         """WORLD frames (f0, spectral envelope, aperiodicity) for a note of n_out frames of 5 ms."""
         n, F = len(self.f0), self.sp.shape[1]
         hz = float(librosa.midi_to_hz(midi))
@@ -137,26 +154,33 @@ class Voice:
             sp = np.stack([np.interp(src, idx, self.sp[:, k]) for k in range(F)], axis=1)
             ap = np.stack([np.interp(src, idx, self.ap[:, k]) for k in range(self.ap.shape[1])], axis=1)
         else:
-            # longer: attack and tail at their natural speed, the steady vowel is held in between
-            a, b = self.hold
+            # longer: attack and tail at their natural speed, the held stretch (the steady vowel, or the place that was chosen) in between
+            a, b, hv = self._hold_window(point)
+            if point is None:
+                hsp, hap = self.hold_sp, self.hold_ap
+            else:
+                hsp = np.exp(np.mean(np.log(self.sp[a:b + 1] + 1e-12), axis=0))
+                hap = np.mean(self.ap[a:b + 1], axis=0)
             rel = n - 1 - b
             mid = n_out - a - rel
             sp = np.empty((n_out, F))
             ap = np.empty((n_out, self.ap.shape[1]))
             vm = np.zeros(n_out, dtype=bool)
             sp[:a], ap[:a], vm[:a] = self.sp[:a], self.ap[:a], self.voiced[:a]
-            sp[a:a + mid], ap[a:a + mid], vm[a:a + mid] = self.hold_sp, self.hold_ap, True
+            sp[a:a + mid], ap[a:a + mid], vm[a:a + mid] = hsp, hap, hv
             if rel:
                 sp[a + mid:], ap[a + mid:], vm[a + mid:] = self.sp[b + 1:], self.ap[b + 1:], self.voiced[b + 1:]
         return np.where(vm, hz, 0.0), np.ascontiguousarray(sp), np.ascontiguousarray(ap)
 
-    def note(self, midi, dur, hold=True):
-        key = (int(midi), round(dur, 3), hold)
+    def note(self, midi, dur, hold=True, point=None):
+        if not self.pitched:
+            point = None
+        key = (int(midi), round(dur, 3), hold, point if not isinstance(point, float) else round(point, 3))
         if key in self.cache:
             return self.cache[key]
         if self.pitched:
             n_out = max(2, int(dur * 1000 / 5.0))
-            f0, sp, ap = self._frames(midi, n_out, hold)
+            f0, sp, ap = self._frames(midi, n_out, hold, point)
             out = pw.synthesize(f0, sp, ap, SR, 5.0)
         else:
             # no pitch to follow: change the pitch by playing the sound faster / slower (relative to the nominal root, A3 = 57,
@@ -173,7 +197,7 @@ class Voice:
         self.cache[key] = out
         return out
 
-    def source_map(self, midi, dur, hold=True):
+    def source_map(self, midi, dur, hold=True, point=None):
         """Where in the CUT (seconds from its start) the sound heard at each moment of a note comes from, as ([note seconds], [cut seconds]).
         A pitched note that is longer than the clip keeps the start and the end of the clip as recorded and holds the steady vowel in
         between, so heard time and cut time are NOT proportional."""
@@ -183,7 +207,7 @@ class Voice:
             if not hold or n_out <= n + 2:
                 src = np.linspace(0, n - 1, n_out)
             else:
-                a, b = self.hold
+                a, b, _hv = self._hold_window(point)
                 rel = n - 1 - b
                 mid = n_out - a - rel
                 src = np.concatenate([np.arange(a), np.full(mid, (a + b) / 2.0), np.arange(b + 1, n)])[:n_out]
@@ -327,7 +351,7 @@ def get_voice(spec):
     return _voices[key]
 
 
-def note_map(spec, p, length_beats, fit, bpm):
+def note_map(spec, p, length_beats, fit, bpm, hold=None):
     """[[heard seconds, cut seconds], ...] for one note of a cut: which part of the cut is heard when. Used to turn a part chosen on the
     sound that comes out of the node back into a part of the cut."""
     spb = 60.0 / float(bpm)
@@ -340,13 +364,13 @@ def note_map(spec, p, length_beats, fit, bpm):
     elif fit == "keep":
         n0 = 0.0 if same_pitch else v.trim0
         ts_, ss_ = np.array([0.0, rnat]), np.array([n0, n0 + rnat])
-    elif same_pitch and 0.9 * rnat <= dur <= rnat + spb:
+    elif same_pitch and 0.9 * rnat <= dur <= rnat + spb and (hold is None or dur <= 1.05 * rnat):   # a chosen place to stretch is stretched even at the clip's own pitch
         ts_, ss_ = np.array([0.0, rnat]), np.array([0.0, rnat])
     else:
         nat = len(v.y) / SR
         n_rep = max(1, int(round(dur / nat))) if fit == "repeat" and dur >= 1.5 * nat else 1
         sub = dur / n_rep
-        t1, s1 = v.source_map(int(p), sub)
+        t1, s1 = v.source_map(int(p), sub, point=hold)
         ts_ = np.concatenate([t1 + r * sub for r in range(n_rep)])
         ss_ = np.concatenate([s1 for _ in range(n_rep)])
     step = max(1, len(ts_) // 400)
@@ -837,7 +861,7 @@ def render(payload):
                         events.append((int((float(nd["s"]) + float(k["s"])) * spb * SR), seg))
                         continue
                     rnat = len(v.raw) / SR
-                    if same_pitch and 0.9 * rnat <= dur <= rnat + spb:
+                    if same_pitch and 0.9 * rnat <= dur <= rnat + spb and (k.get("hold") is None or dur <= 1.05 * rnat):   # a chosen place to stretch is stretched even at the clip's own pitch
                         want = int(dur * SR)
                         seg = v.raw[:want].copy()
                         seg = np.pad(seg, (0, want - len(seg)))
@@ -850,7 +874,7 @@ def render(payload):
                     n_rep =max(1, int(round(dur / nat))) if fit == "repeat" and dur >= 1.5 * nat else 1
                     sub = dur / n_rep
                     for r in range(n_rep):
-                        seg = v.note(int(k["p"]), sub).copy()
+                        seg = v.note(int(k["p"]), sub, point=k.get("hold")).copy()
                         f = min(fade, len(seg) // 2)
                         if f:
                             seg[:f] *= np.linspace(0, 1, f)
